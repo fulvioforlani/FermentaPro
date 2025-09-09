@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 FermentaPro - Calcolatore grafico per fermentati casalinghi
-Autore: ChatGPT
+Autore: Fulvio Forlani
 Versione Corretta: 1.3.1 (con bugfix critici)
 Dipendenze: solo Python standard (tkinter, sqlite3). Nessuna libreria esterna richiesta.
 Esecuzione: python FermentaPro_fixed.py
