@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.bak*
+app.js.bak-*
+public/
+firewall_8954.ps1
