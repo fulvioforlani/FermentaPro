@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0f0c">
+<title>Fermentati</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='9' y='2' width='14' height='5' rx='1.5' fill='%23f5b544'/%3E%3Cpath d='M8 8h16c3 0 5 2 5 5v12c0 3-2 5-5 5H8c-3 0-5-2-5-5V13c0-3 2-5 5-5z' fill='%238be36b'/%3E%3Ccircle cx='12' cy='18' r='2' fill='%23fff' opacity='.7'/%3E%3Ccircle cx='19' cy='23' r='1.5' fill='%23fff' opacity='.6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-salt" viewBox="0 0 24 24"><path d="M8 9h8l-1 11a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2L8 9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 9 9.5 4h5l1 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="11" cy="6.4" r=".9" fill="currentColor"/><circle cx="13.4" cy="6.4" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-jar" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="3.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 6h9c2.5 0 4 1.6 4 4v9a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3v-9c0-2.4 1.5-4 4-4z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="15" r="1.3" fill="currentColor"/><circle cx="14" cy="12" r="1" fill="currentColor"/><circle cx="14.5" cy="17.5" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h7M9 11.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21 14 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-resize" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 2.5L15 4M9 20l3-2.5 3 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m20 20-3.6-3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18" r="1.7" fill="currentColor"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></symbol>
+  <symbol id="i-spoon" viewBox="0 0 24 24"><ellipse cx="15.5" cy="7.5" rx="4" ry="5" transform="rotate(40 15.5 7.5)" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12.6 11 4 20.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bottle" viewBox="0 0 24 24"><path d="M10 2.5h4M10.5 2.5v4.2c0 .8-.4 1.5-1 2-1.4 1-2.5 2.4-2.5 4.3v7a1.6 1.6 0 0 0 1.6 1.6h6.8a1.6 1.6 0 0 0 1.6-1.6v-7c0-1.9-1.1-3.3-2.5-4.3-.6-.5-1-1.2-1-2V2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 14h10" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-pour" viewBox="0 0 24 24"><path d="M4 9h11v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 11h2a2.5 2.5 0 0 1 0 5h-2M8 2.5c-1 1.5 1 2.5 0 4M11.5 2.5c-1 1.5 1 2.5 0 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18M5 16l4-5 4 3 6-8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="ambient" aria-hidden="true"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="floaters" id="floaters"></div></div>
+
+<header class="topbar">
+  <a class="brand" href="#sale" aria-label="Fermentati, home">
+    <span class="brand-jar" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-jar"/></svg></span>
+    <span class="brand-name">Fermentati<small>cantina di casa</small></span>
+  </a>
+  <nav class="mainnav" aria-label="Sezioni">
+    <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg>Sale</a>
+    <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg>Vasi<b class="badge" data-badge hidden></b></a>
+    <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg>Ricette</a>
+    <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg>Kombucha</a>
+    <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg>Guida</a>
+    <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg>Adatta</a>
+  </nav>
+  <span class="today" id="today"></span>
+</header>
+
+<main id="main">
+  <!-- 1. CALCOLATORE SALE -->
+  <section class="view" id="v-sale" aria-labelledby="t-sale">
+    <div class="vhead">
+      <p class="eyebrow">Calcolatore</p>
+      <h1 id="t-sale">Quanto <em>sale</em>?</h1>
+      <a class="xlink" href="#kombucha"><svg><use href="#i-bottle"/></svg>Kombucha? Lì niente sale: tè e zucchero<svg><use href="#i-arrow"/></svg></a>
+    </div>
+    <div class="calc">
+      <div class="panel calc-in">
+        <div class="seg" id="c-method" role="radiogroup" aria-label="Metodo">
+          <button type="button" role="radio" data-m="secco"><b>A secco</b><small>sale sulle verdure</small></button>
+          <button type="button" role="radio" data-m="salamoia"><b>Salamoia</b><small>sale sull'acqua</small></button>
+        </div>
+        <div class="weigh">
+          <label class="num"><span id="l-lordo">Vaso + verdure</span><span class="inp"><input id="c-lordo" type="number" inputmode="decimal" min="0" step="1" placeholder="0"><i>g</i></span></label>
+          <span class="op" aria-hidden="true">−</span>
+          <label class="num"><span id="l-tara">Vaso vuoto</span><span class="inp"><input id="c-tara" type="number" inputmode="decimal" min="0" step="1" placeholder="0"><i>g</i></span></label>
+          <span class="op" aria-hidden="true">=</span>
+          <div class="num netto"><span id="l-netto">Verdure nette</span><span class="netval"><output id="c-netto">0</output><i>g</i></span></div>
+        </div>
+        <p class="warn" id="c-warn" hidden></p>
+        <div class="pct">
+          <div class="pct-head">
+            <span class="lbl">Percentuale</span>
+            <output id="c-pct-out" class="pct-val">2,0 %</output>
+            <span class="zone" id="c-zone">giusto</span>
+          </div>
+          <div class="slider"><div class="track" id="c-track"></div><input type="range" id="c-pct" aria-label="Percentuale di sale"></div>
+          <div class="ticks" id="c-ticks"></div>
+          <div class="quick" id="c-quick"></div>
+        </div>
+      </div>
+
+      <div class="panel calc-out">
+        <div class="jarstage" id="c-jar"></div>
+        <div class="result">
+          <span class="big"><output id="c-salt">0</output><i>g</i></span>
+          <span class="res-l">di sale <em>non iodato</em></span>
+        </div>
+      </div>
+
+      <div class="panel calc-check">
+        <div class="check-grid">
+          <div>
+            <h3>Sale messo davvero</h3>
+            <label class="num"><span>Grammi messi</span><span class="inp"><input id="c-real" type="number" inputmode="decimal" min="0" step="0.5" placeholder="—"><i>g</i></span></label>
+          </div>
+          <div class="gauge" id="c-gauge"></div>
+        </div>
+        <p class="verdict" id="c-verdict" aria-live="polite"></p>
+        <div class="actions">
+          <button class="btn ghost" id="c-example" type="button"><svg><use href="#i-undo"/></svg>Esempio 17-10-26</button>
+          <button class="btn primary" id="c-start" type="button"><svg><use href="#i-jar"/></svg>Avvia questo vaso</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. VASI IN CORSO -->
+  <section class="view" id="v-vasi" aria-labelledby="t-vasi">
+    <div class="vhead row-head">
+      <div><p class="eyebrow">In cantina</p><h1 id="t-vasi">I miei <em>vasi</em></h1></div>
+      <button class="btn primary" id="j-new" type="button"><svg><use href="#i-plus"/></svg>Nuovo vaso</button>
+    </div>
+    <p class="how"><svg><use href="#i-info"/></svg><span>Stima: giorni a 20 °C corretti ogni giorno con la temperatura (Q10 2,2). <b>Decidono assaggio e odore.</b></span></p>
+    <p class="how meteo" id="j-meteo"></p>
+    <div class="reminders" id="j-rem"></div>
+    <div class="shelf" id="j-list"></div>
+    <details class="done" id="j-done-wrap" hidden><summary>Finiti <b id="j-done-n"></b></summary><div class="shelf small" id="j-done"></div></details>
+  </section>
+
+  <!-- 3. RICETTARIO -->
+  <section class="view" id="v-ricette" aria-labelledby="t-ric">
+    <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-ric">Le <em>ricette</em></h1></div>
+    <div id="r-hero"></div>
+    <div class="filters panel">
+      <label class="search"><svg><use href="#i-search"/></svg><input id="r-q" type="search" placeholder="Cerca: cavolo, aneto, kimchi…" aria-label="Cerca ricette"></label>
+      <div class="chips" id="r-chips"></div>
+      <label class="selectwrap"><span class="sr">Verdura</span><select id="r-veg" aria-label="Verdura"></select></label>
+      <span class="count" id="r-count"></span>
+    </div>
+    <div class="grid" id="r-grid"></div>
+    <div class="empty" id="r-empty" hidden><div class="empty-jar"></div><p>Nessuna ricetta con questi filtri</p><button class="btn ghost" id="r-reset" type="button">Azzera filtri</button></div>
+  </section>
+
+  <!-- KOMBUCHA -->
+  <section class="view" id="v-kombucha" aria-labelledby="t-kb">
+    <div class="vhead row-head">
+      <div><p class="eyebrow">Bevanda</p><h1 id="t-kb">Kom<em>bucha</em></h1></div>
+      <span class="gram-note">Tutto in grammi · 1 L d'acqua = 1000 g</span>
+    </div>
+    <div class="kb">
+      <div class="panel kb-in">
+        <div class="seg" id="k-mode" role="radiogroup" aria-label="Come misuri">
+          <button type="button" role="radio" data-m="litri"><b>Litri</b><small>quanta bevanda</small></button>
+          <button type="button" role="radio" data-m="pesa"><b>Pesa</b><small>lordo − tara</small></button>
+        </div>
+        <div id="k-litri" class="kblock">
+          <div class="quick" id="k-lchips"></div>
+          <span class="inp wide"><input id="k-l" type="number" inputmode="decimal" min="0.2" step="0.1" value="2"><i>litri di bevanda</i></span>
+        </div>
+        <div id="k-pesa" class="kblock weigh">
+          <label class="num"><span>Contenitore + acqua</span><span class="inp"><input id="k-lordo" type="number" inputmode="decimal" min="0" placeholder="0"><i>g</i></span></label>
+          <span class="op" aria-hidden="true">−</span>
+          <label class="num"><span>Contenitore vuoto</span><span class="inp"><input id="k-tara" type="number" inputmode="decimal" min="0" placeholder="0"><i>g</i></span></label>
+        </div>
+        <div class="field kf"><span>Tè per litro <output id="k-tea-o"></output></span><input type="range" class="plain" id="k-tea" min="5" max="8" step="0.5"><div class="ends"><small>5 g leggero</small><small>8 g forte</small></div></div>
+        <div class="field kf"><span>Zucchero per litro <output id="k-sug-o"></output></span><input type="range" class="plain" id="k-sug" min="50" max="80" step="5"><div class="ends"><small>50 g</small><small>80 g</small></div></div>
+        <div class="field kf"><span>Starter dal lotto prima <output id="k-st-o"></output></span><input type="range" class="plain" id="k-st" min="5" max="20" step="1"><div class="ends"><small>5 % minimo</small><small>20 %</small></div></div>
+        <label class="field kf"><span>Diametro del vaso <small>(facoltativo, per lo SCOBY)</small></span><span class="inp wide"><input id="k-d" type="number" inputmode="decimal" min="5" max="40" step="0.5" placeholder="12"><i>cm</i></span></label>
+      </div>
+      <div class="panel kb-out">
+        <div class="kb-vis"><div class="jarstage" id="k-jar"></div></div>
+        <ul class="kres" id="k-res"></ul>
+        <div class="ktot" id="k-tot"></div>
+        <p class="hint" id="k-scoby-h"></p>
+        <div class="actions"><button class="btn primary" id="k-start" type="button"><svg><use href="#i-bottle"/></svg>Avvia lotto</button></div>
+      </div>
+    </div>
+    <h2 class="sub-h">Come si fa</h2>
+    <ol class="ksteps" id="k-steps"></ol>
+    <div class="kfacts" id="k-facts"></div>
+    <h2 class="sub-h">Sicurezza</h2>
+    <div class="safety" id="k-safe"></div>
+    <div class="krules" id="k-rules"></div>
+    <div class="row-head" style="margin-top:34px"><h2 class="sub-h" style="margin:0">I tuoi lotti</h2><button class="btn ghost" type="button" id="k-new"><svg><use href="#i-plus"/></svg>Nuovo lotto</button></div>
+    <div class="shelf" id="k-list" style="margin-top:14px"></div>
+  </section>
+
+  <!-- 4. GUIDA -->
+  <section class="view" id="v-guida" aria-labelledby="t-guida">
+    <div class="vhead"><p class="eyebrow">Regole di base</p><h1 id="t-guida">La <em>guida</em></h1></div>
+    <div class="guide" id="g-cards"></div>
+    <h2 class="sub-h">Sicurezza: guarda e annusa</h2>
+    <div class="safety" id="g-safe"></div>
+  </section>
+
+  <!-- 5. ADATTA AL VASO -->
+  <section class="view" id="v-adatta" aria-labelledby="t-ad">
+    <div class="vhead"><p class="eyebrow">Su misura</p><h1 id="t-ad">Adatta al <em>vaso</em></h1></div>
+    <div class="adapt">
+      <div class="panel ad-in">
+        <label class="field"><span>Ricetta</span><select id="a-recipe"></select></label>
+        <div class="field"><span>Vaso</span><div class="quick" id="a-liters"></div>
+          <span class="inp wide"><input id="a-l" type="number" inputmode="decimal" min="0.1" step="0.05" value="1"><i>litri</i></span></div>
+        <div class="field"><span>Spazio libero in cima <output id="a-head-o"></output></span><input type="range" id="a-head" min="0" max="300" step="10" value="60" class="plain"></div>
+        <div class="field"><span>Verdure nel vaso <output id="a-pf-o"></output></span><input type="range" id="a-pf" min="0.5" max="0.9" step="0.01" value="0.7" class="plain"><div class="ends"><small>lasche</small><small>pressate</small></div></div>
+        <label class="toggle"><input type="checkbox" id="a-spices" checked><span></span>Scala anche le spezie</label>
+      </div>
+      <div class="panel ad-out">
+        <div class="ad-vis"><div class="jarstage" id="a-jar"></div><div class="factor"><small>fattore</small><output id="a-factor">×1</output></div></div>
+        <div class="tiles" id="a-tiles"></div>
+        <ul class="ing" id="a-items"></ul>
+        <div class="actions"><button class="btn primary" id="a-start" type="button"><svg><use href="#i-jar"/></svg>Avvia questo vaso</button></div>
+      </div>
+      <div class="panel ad-need">
+        <h3>Che vaso serve?</h3>
+        <div class="need-row"><span class="inp"><input id="n-g" type="number" inputmode="decimal" min="0" placeholder="1000"><i>g verdure</i></span><svg class="arr"><use href="#i-arrow"/></svg><output id="n-out">—</output></div>
+        <p class="hint">Con lo stesso riempimento e spazio in cima scelti sopra.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Sezioni">
+  <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg><span>Sale</span></a>
+  <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg><span>Vasi</span><b class="badge" data-badge hidden></b></a>
+  <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg><span>Ricette</span></a>
+  <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg><span>Kombucha</span></a>
+  <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg><span>Guida</span></a>
+  <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg><span>Adatta</span></a>
+</nav>
+
+<dialog id="dlg-r" class="sheet" aria-labelledby="dr-title"><div class="sheet-in" id="dr-body"></div></dialog>
+
+<dialog id="dlg-j" class="sheet" aria-labelledby="dj-title">
+  <form class="sheet-in" id="j-form" method="dialog" novalidate>
+    <div class="sheet-top"><h2 id="dj-title">Nuovo vaso</h2><button class="icon-btn" type="button" data-close aria-label="Chiudi"><svg><use href="#i-x"/></svg></button></div>
+    <div class="jf">
+      <div class="jf-vis"><div class="jarstage" id="jf-jar"></div><p class="jf-min" id="jf-min"></p></div>
+      <div class="jf-fields">
+        <div class="seg small" id="jf-kind" role="radiogroup" aria-label="Tipo">
+          <button type="button" role="radio" data-m="verdure"><b>Verdure</b></button>
+          <button type="button" role="radio" data-m="kombucha"><b>Kombucha</b></button>
+        </div>
+        <label class="field"><span>Nome</span><input id="jf-name" type="text" maxlength="80" placeholder="Es. Crauti di ottobre" required></label>
+        <div class="vegonly">
+          <label class="field"><span>Da ricetta <small>(facoltativo)</small></span><select id="jf-recipe"></select></label>
+          <div class="seg small" id="jf-method" role="radiogroup" aria-label="Metodo">
+            <button type="button" role="radio" data-m="secco"><b>A secco</b></button>
+            <button type="button" role="radio" data-m="salamoia"><b>Salamoia</b></button>
+          </div>
+        </div>
+        <div class="two">
+          <label class="field"><span>Inizio</span><input id="jf-date" type="date" required></label>
+          <label class="field"><span>Giorni base a 20 °C</span><input id="jf-base" type="number" inputmode="decimal" min="1" max="120" step="0.5" value="7"></label>
+        </div>
+        <div class="field"><span><svg class="ic"><use href="#i-thermo"/></svg>Temperatura di casa <output id="jf-temp-o"></output></span><input type="range" id="jf-temp" min="12" max="30" step="0.5" value="20" class="plain temp"></div>
+        <div class="seg small" id="jf-tmode" role="radiogroup" aria-label="Temperatura usata">
+          <button type="button" role="radio" data-m="auto"><b>Auto</b><small>estate: ARPA</small></button>
+          <button type="button" role="radio" data-m="fissa"><b>Fissa</b><small>sempre questa</small></button>
+        </div>
+        <div class="three kbonly">
+          <label class="field"><span>Acqua g</span><input id="jf-kw" type="number" inputmode="decimal" min="0" step="5"></label>
+          <label class="field"><span>Zucchero g</span><input id="jf-ks" type="number" inputmode="decimal" min="0" step="5"></label>
+          <label class="field"><span>Tè g</span><input id="jf-kt" type="number" inputmode="decimal" min="0" step="0.5"></label>
+          <label class="field"><span>Starter g</span><input id="jf-kst" type="number" inputmode="decimal" min="0" step="5"></label>
+          <label class="field"><span>SCOBY g</span><input id="jf-ksc" type="number" inputmode="decimal" min="0" step="5"></label>
+        </div>
+        <label class="toggle kbonly" style="margin-bottom:14px"><input type="checkbox" id="jf-cont"><span></span>Lotto continuo (prelevi e rabbocchi)</label>
+        <div class="three vegonly">
+          <label class="field"><span id="jf-net-l">Verdure g</span><input id="jf-net" type="number" inputmode="decimal" min="0" step="1"></label>
+          <label class="field" id="jf-water-f"><span>Acqua g</span><input id="jf-water" type="number" inputmode="decimal" min="0" step="1"></label>
+          <label class="field"><span>Sale g <output id="jf-pct" class="mini"></output></span><input id="jf-salt" type="number" inputmode="decimal" min="0" step="0.5"></label>
+        </div>
+        <div class="field vegonly"><span>Colore</span><div class="swatches" id="jf-colors"></div></div>
+        <label class="field"><span>Note</span><textarea id="jf-notes" rows="2" maxlength="1000" placeholder="Spezie, idee, com'è andata…"></textarea></label>
+      </div>
+    </div>
+    <div class="sheet-foot"><button class="btn ghost" type="button" data-close>Annulla</button><button class="btn primary" type="submit" id="jf-save"><svg><use href="#i-check"/></svg>Salva</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-d" class="sheet" aria-labelledby="dd-title"><div class="sheet-in" id="dd-body"></div></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

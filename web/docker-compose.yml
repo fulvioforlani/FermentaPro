@@ -1,0 +1,15 @@
+services:
+  fermentati:
+    build: .
+    image: fermentati:latest
+    container_name: fermentati
+    restart: unless-stopped
+    ports:
+      - "8954:8954"
+    volumes:
+      - fermentati_data:/data
+    environment:
+      - TZ=Europe/Rome
+
+volumes:
+  fermentati_data:
