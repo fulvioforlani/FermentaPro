@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- sfondo icona: verde scurissimo con un alone verde e uno ambra (come la webapp) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FF0F1A13" android:pathData="M0,0h108v108h-108z"/>
+    <path android:fillColor="#268BE36B" android:pathData="M18,30m-34,0a34,34 0 1,0 68,0a34,34 0 1,0 -68,0"/>
+    <path android:fillColor="#1FF5B544" android:pathData="M94,92m-30,0a30,30 0 1,0 60,0a30,30 0 1,0 -60,0"/>
+</vector>

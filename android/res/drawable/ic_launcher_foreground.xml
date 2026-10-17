@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vaso con crauti/carote e bolle. Zona sicura dell'icona adattiva: cerchio di 66dp al centro (21..87). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- coperchio -->
+    <path android:fillColor="#D9A03A" android:pathData="M42,27h24a2,2 0 0 1 2,2v5a2,2 0 0 1 -2,2h-24a2,2 0 0 1 -2,-2v-5a2,2 0 0 1 2,-2z"/>
+    <path android:fillColor="#FFE7A6" android:pathData="M43,25.5h22a1.5,1.5 0 0 1 1.5,1.5v1.5h-25v-1.5a1.5,1.5 0 0 1 1.5,-1.5z"/>
+    <!-- vetro -->
+    <path android:fillColor="#1FD2F5E6"
+        android:strokeColor="#CCE1FFF0" android:strokeWidth="1.6"
+        android:pathData="M43,36h22v2.5c0,2 2,3 4.5,4c3.5,1.5 4.5,3.5 4.5,7v26c0,4.5 -3,7.5 -7.5,7.5h-25c-4.5,0 -7.5,-3 -7.5,-7.5v-26c0,-3.5 1,-5.5 4.5,-7c2.5,-1 4.5,-2 4.5,-4z"/>
+    <!-- verdure: verde (cavolo) e arancio (carota) -->
+    <path android:fillColor="#8BE36B" android:pathData="M35,56q9.5,-2.5 19,0t19,0v20c0,3.7 -2.4,6 -6,6h-26c-3.6,0 -6,-2.3 -6,-6z"/>
+    <path android:fillColor="#FF8A2B" android:pathData="M35,69q9.5,-2 19,0t19,0v7c0,3.7 -2.4,6 -6,6h-26c-3.6,0 -6,-2.3 -6,-6z"/>
+    <!-- riflesso -->
+    <path android:strokeColor="#66FFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M38.5,50v24"/>
+    <!-- bolle -->
+    <path android:fillColor="#E6FFFFFF" android:pathData="M58,47m-2.6,0a2.6,2.6 0 1,0 5.2,0a2.6,2.6 0 1,0 -5.2,0"/>
+    <path android:fillColor="#CCFFFFFF" android:pathData="M51,42.5m-1.7,0a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0"/>
+    <path android:fillColor="#B3FFFFFF" android:pathData="M64,52m-1.4,0a1.4,1.4 0 1,0 2.8,0a1.4,1.4 0 1,0 -2.8,0"/>
+</vector>

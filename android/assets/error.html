@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fermentati</title>
+<style>
+:root{--bg:#090e0b;--line:rgba(196,236,208,.16);--tx:#eef3ec;--tx2:#c9d4cb;--mut:#93a398;--green:#8be36b;--amber:#f5b544}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font:16px/1.5 sans-serif;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;
+  background:radial-gradient(520px 380px at 50% 0%,rgba(245,181,68,.10),transparent 65%),var(--bg)}
+main{width:100%;max-width:420px;text-align:center}
+svg{width:132px;height:auto;margin:0 auto;display:block;overflow:visible}
+.lid{animation:wob 3.2s ease-in-out infinite;transform-origin:60px 20px}
+@keyframes wob{0%,70%,100%{transform:none}78%{transform:rotate(-6deg) translateY(-3px)}86%{transform:rotate(4deg)}}
+.z{animation:zz 3s ease-in-out infinite;opacity:0;font:italic 700 16px serif;fill:var(--amber)}
+.z:nth-of-type(2){animation-delay:1s}.z:nth-of-type(3){animation-delay:2s}
+@keyframes zz{0%{opacity:0;transform:translate(0,0)}30%{opacity:1}100%{opacity:0;transform:translate(14px,-30px)}}
+h1{margin:12px 0 4px;font:italic 400 32px/1.1 serif}
+.why{margin:0 0 12px;color:var(--tx2)}
+.addr{display:inline-block;padding:6px 14px;border-radius:999px;border:1px dashed var(--line);font:600 15px monospace;color:var(--amber)}
+ul{list-style:none;margin:20px 0 4px;padding:0;display:flex;flex-direction:column;gap:8px;text-align:left}
+li{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:rgba(20,30,24,.8);border:1px solid var(--line);font-size:15px}
+li b{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(139,227,107,.14);color:var(--green);font:700 14px sans-serif}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin-top:12px;border-radius:15px;border:1px solid transparent;font:700 16.5px sans-serif}
+.primary{color:#0b1a0f;background:linear-gradient(140deg,#8be36b,#b6f29b);box-shadow:0 12px 28px -12px rgba(139,227,107,.85)}
+.ghost{color:var(--tx);background:rgba(255,255,255,.04);border-color:var(--line)}
+.btn:active{transform:scale(.98)}
+.auto{margin-top:12px;color:var(--mut);font-size:13.5px}
+</style>
+</head>
+<body>
+<main>
+  <svg viewBox="0 0 120 150" aria-hidden="true">
+    <ellipse cx="60" cy="144" rx="40" ry="4" fill="#000" opacity=".5"/>
+    <g class="lid"><rect x="33" y="6" width="54" height="15" rx="4" fill="#d9a03a"/><rect x="35" y="4" width="50" height="6" rx="3" fill="#ffe7a6"/></g>
+    <path d="M36 22h48v5c0 4 4 6 9 8 7 3 9 7 9 14v76c0 9-6 15-15 15H33c-9 0-15-6-15-15V49c0-7 2-11 9-14 5-2 9-4 9-8z" fill="rgba(210,245,230,.06)" stroke="rgba(225,255,240,.45)" stroke-width="2"/>
+    <path d="M20 92q20-5 40 0t40 0v35c0 8-5 12-13 12H33c-8 0-13-4-13-12z" fill="#8be36b" opacity=".55"/>
+    <path d="M44 74q4-4 8 0M68 74q4-4 8 0" stroke="#eef3ec" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M52 86q8-5 16 0" stroke="#eef3ec" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M27 58v62" stroke="#fff" stroke-opacity=".3" stroke-width="3.5" stroke-linecap="round"/>
+    <text class="z" x="92" y="30">z</text><text class="z" x="98" y="22">z</text><text class="z" x="104" y="14">z</text>
+  </svg>
+  <h1>Non trovo il server</h1>
+  <p class="why" id="why">Il server non risponde.</p>
+  <span class="addr" id="addr"></span>
+  <ul>
+    <li><b>1</b>Il PC di casa è acceso?</li>
+    <li><b>2</b>Il telefono è sul WiFi di casa?</li>
+    <li><b>3</b>Il Docker “fermentati” è avviato?</li>
+  </ul>
+  <button class="btn primary" type="button" onclick="Fermentati.retry()">Riprova</button>
+  <button class="btn ghost" type="button" onclick="Fermentati.changeAddress()">Cambia indirizzo</button>
+  <p class="auto" id="auto"></p>
+</main>
+<script>
+var q = new URLSearchParams(location.search);
+document.getElementById('why').textContent = q.get('why') || 'Il server non risponde.';
+document.getElementById('addr').textContent = q.get('addr') || '';
+var n = 30, el = document.getElementById('auto');
+var t = setInterval(function () { n--; el.textContent = 'Riprovo da solo tra ' + n + ' s'; if (n <= 0) { clearInterval(t); Fermentati.retry(); } }, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# mai su git: chiavi di firma, apk e file di build
+keystore/
+build/
+*.apk
+*.jks
+*.keystore
+*.idsig
