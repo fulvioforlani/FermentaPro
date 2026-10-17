@@ -82,12 +82,12 @@ JAR_FIELDS = {
     "water_g": float, "salt_g": float, "color": str, "notes": str,
     "status": str, "fridge_date": str,
     "kind": str, "temp_mode": str, "tea_g": float, "sugar_g": float,
-    "starter_g": float, "scoby_g": float, "continuous": int,
+    "starter_g": float, "scoby_g": float, "continuous": int, "base_mode": str,
 }
 NEW_COLS = {
     "kind": "TEXT DEFAULT 'verdure'", "temp_mode": "TEXT DEFAULT 'auto'", "tea_g": "REAL DEFAULT 0",
     "sugar_g": "REAL DEFAULT 0", "starter_g": "REAL DEFAULT 0", "scoby_g": "REAL DEFAULT 0",
-    "continuous": "INTEGER DEFAULT 0",
+    "continuous": "INTEGER DEFAULT 0", "base_mode": "TEXT DEFAULT 'auto'",
 }
 
 
@@ -123,6 +123,8 @@ def init_db():
             type TEXT NOT NULL, value REAL, value2 REAL, note TEXT DEFAULT '', created_at TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS weather_days (
             date TEXT PRIMARY KEY, tmean REAL NOT NULL, source TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS base_overrides (
+            key TEXT PRIMARY KEY, days REAL NOT NULL, updated_at TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS drinks (
             id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
             kind TEXT NOT NULL, data TEXT NOT NULL)""")
@@ -208,6 +210,35 @@ def weather_loop():
         time.sleep(REFRESH_EVERY)
 
 
+# ------------------------------------------------------------------ tempo base
+KOMBU_BASE = float(KOMBUCHA["f1"]["base_days_20"])
+GENERIC_BASE = 7.0
+
+
+def recipe_base_default(r):
+    q = float(r["q10"] or 2.2)
+    return round(float(r["min_time_days"]) / q ** ((20.0 - float(r["target_temp_c"])) / 10.0), 2)
+
+
+def overrides(c):
+    return {r["key"]: r["days"] for r in c.execute("SELECT key, days FROM base_overrides")}
+
+
+def jar_base(j, recs, ov):
+    if (j.get("kind") or "verdure") == "kombucha":
+        default, src = ov.get("kombucha", KOMBU_BASE), "kombucha"
+        custom_src = "kombucha" in ov
+    elif j.get("recipe_id") and j["recipe_id"] in recs:
+        key = f"recipe:{j['recipe_id']}"
+        default, src = ov.get(key, recipe_base_default(recs[j["recipe_id"]])), "ricetta"
+        custom_src = key in ov
+    else:
+        default, src, custom_src = GENERIC_BASE, "vaso", False
+    mode = j.get("base_mode") or "auto"
+    eff = float(j["base_days"]) if mode == "tuo" and j.get("base_days") else float(default)
+    return {"eff": round(eff, 2), "default": round(float(default), 2), "mode": mode, "src": src, "src_custom": custom_src}
+
+
 # ------------------------------------------------------------------ prontezza
 def d_(s):
     return datetime.date.fromisoformat(str(s)[:10])
@@ -216,7 +247,7 @@ def d_(s):
 def readiness(j, events, wx, today, hour_frac):
     kombu = (j.get("kind") or "verdure") == "kombucha"
     q = float(j.get("q10") or 2.2)
-    base = float(j.get("base_days") or (12 if kombu else 7))
+    base = float(j.get("_base") or j.get("base_days") or (12 if kombu else 7))
     t_home = float(j.get("temp_c") if j.get("temp_c") is not None else 20)
     mode = j.get("temp_mode") or "auto"
     start = d_(j["start_date"])
@@ -323,13 +354,18 @@ def jars_payload():
         for r in c.execute("SELECT * FROM jar_events ORDER BY date, id"):
             evs.setdefault(r["jar_id"], []).append(dict(r))
         wx = {r["date"]: (r["tmean"], r["source"]) for r in c.execute("SELECT * FROM weather_days")}
+        recs = {r["id"]: dict(r) for r in c.execute("SELECT id, min_time_days, target_temp_c, q10 FROM recipes")}
+        ov = overrides(c)
     for j in jars:
         j["events"] = evs.get(j["id"], [])
+        j["base_info"] = jar_base(j, recs, ov)
+        j["_base"] = j["base_info"]["eff"]
         try:
             j["ready"] = readiness(j, j["events"], wx, today, hour_frac)
         except Exception as e:  # noqa: BLE001
             print("[fermentati] prontezza errore:", j.get("id"), repr(e), flush=True)
             j["ready"] = None
+        j.pop("_base", None)
     return jars
 
 
@@ -342,9 +378,14 @@ def all_data():
             items.setdefault(r["recipe_id"], []).append({"type": r["item_type"], "name": r["name"], "g": r["weight_g"] or 0})
         recipes = []
         vmap = {v["name"]: v for v in vegs}
+        ov = overrides(c)
         for r in c.execute("SELECT * FROM recipes ORDER BY id"):
             d = dict(r)
             d["items"] = items.get(d["id"], [])
+            d["base_default"] = recipe_base_default(d)
+            key = f"recipe:{d['id']}"
+            d["base_custom"] = key in ov
+            d["base_eff"] = round(float(ov.get(key, d["base_default"])), 2)
             months = set()
             for it in d["items"]:
                 if it["type"] == "vegetable" and it["name"] in vmap:
@@ -352,6 +393,10 @@ def all_data():
             d["months"] = sorted(months)
             recipes.append(d)
         drinks = {r["slug"]: json.loads(r["data"]) for r in c.execute("SELECT slug, data FROM drinks")}
+        if "kombucha" in drinks:
+            drinks["kombucha"]["base_default"] = KOMBU_BASE
+            drinks["kombucha"]["base_custom"] = "kombucha" in ov
+            drinks["kombucha"]["base_eff"] = float(ov.get("kombucha", KOMBU_BASE))
     return {"recipes": recipes, "vegetables": vegs, "spices": spices, "drinks": drinks,
             "station": STATION["name"], "today": now_local().date().isoformat()}
 
@@ -389,6 +434,10 @@ def clean_jar(body, partial=False):
         raise ValueError("stato non valido")
     if "kind" in out and out["kind"] not in ("verdure", "kombucha"):
         raise ValueError("tipo non valido")
+    if "base_mode" in out and out["base_mode"] not in ("auto", "tuo"):
+        raise ValueError("modo tempo base non valido")
+    if "base_days" in out and out["base_days"] is not None and not 1 <= out["base_days"] <= 120:
+        raise ValueError("tempo base fuori scala (1-120 giorni)")
     if "temp_mode" in out and out["temp_mode"] not in ("auto", "fissa"):
         raise ValueError("modo temperatura non valido")
     if "start_date" in out and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", out["start_date"] or ""):
@@ -445,6 +494,50 @@ class Handler(SimpleHTTPRequestHandler):
             if p == "/api/meteo/refresh" and method == "POST":
                 refresh_weather()
                 return self.send_json({"ok": True, "stato": METEO})
+            if p == "/api/base" and method == "POST":
+                b = self.body()
+                key = str(b.get("key") or "")
+                if not re.fullmatch(r"recipe:\d+|kombucha", key):
+                    raise ValueError("chiave non valida")
+                days = b.get("days")
+                with LOCK, conn() as c:
+                    if days in (None, ""):
+                        c.execute("DELETE FROM base_overrides WHERE key=?", (key,))
+                    else:
+                        days = float(days)
+                        if not 1 <= days <= 120:
+                            raise ValueError("tempo base fuori scala (1-120 giorni)")
+                        c.execute("""INSERT INTO base_overrides (key, days, updated_at) VALUES (?,?,?)
+                                     ON CONFLICT(key) DO UPDATE SET days=excluded.days, updated_at=excluded.updated_at""",
+                                  (key, round(days, 2), now_local().isoformat(timespec="seconds")))
+                    cur = overrides(c).get(key)
+                return self.send_json({"ok": True, "key": key, "days": cur})
+            if p == "/api/recipes" and method == "POST":
+                b = self.body()
+                name = str(b.get("name") or "").strip()[:160]
+                meth = b.get("method")
+                if not name or meth not in ("secco", "salamoia"):
+                    raise ValueError("nome o metodo mancante")
+                items = [i for i in (b.get("items") or []) if i.get("type") in ("vegetable", "spice") and str(i.get("name") or "").strip()]
+                if not any(i["type"] == "vegetable" for i in items):
+                    raise ValueError("serve almeno una verdura")
+                tot = float(b.get("total_weight_g") or 0)
+                if not 1 <= tot <= 100000:
+                    raise ValueError("peso non valido")
+                vals = (name, meth, tot, float(b["brine_pct"]) if b.get("brine_pct") else None, None, None,
+                        0.7 if meth == "salamoia" else None, float(b.get("target_temp_c") or 20),
+                        max(0.1, float(b.get("min_time_days") or 7)), max(0.0, float(b.get("salt_g") or 0)),
+                        max(0.0, float(b.get("water_ml") or 0)), 2.2, str(b.get("notes") or "")[:4000], 0, "",
+                        now_local().isoformat(timespec="seconds"))
+                with LOCK, conn() as c:
+                    cur = c.execute("""INSERT INTO recipes (name, method, total_weight_g, brine_pct, jar_volume_ml, headspace_ml,
+                        packing_fraction, target_temp_c, min_time_days, salt_g, water_ml, q10, notes, rating, tasted_notes, created_at)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", vals)
+                    rid = cur.lastrowid
+                    for i in items[:40]:
+                        c.execute("INSERT INTO recipe_items (recipe_id, item_type, name, weight_g) VALUES (?,?,?,?)",
+                                  (rid, i["type"], str(i["name"])[:80], max(0.0, float(i.get("g") or 0))))
+                return self.send_json({"ok": True, "id": rid}, 201)
             m = re.fullmatch(r"/api/recipes/(\d+)", p)
             if m and method == "POST":
                 b = self.body()

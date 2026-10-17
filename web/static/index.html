@@ -129,6 +129,13 @@
   <!-- 3. RICETTARIO -->
   <section class="view" id="v-ricette" aria-labelledby="t-ric">
     <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-ric">Le <em>ricette</em></h1></div>
+    <div class="ing panel">
+      <div class="ing-bar"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="ing-q" type="text" autocomplete="off" spellcheck="false" placeholder="Cosa hai? rape carote sedano rapa…" aria-label="Ingredienti che hai"><button class="icon-btn" type="button" id="ing-clear" aria-label="Svuota"><svg><use href="#i-x"/></svg></button></div>
+      <div class="ing-ac" id="ing-ac" role="listbox" hidden></div>
+      <div class="ing-chips" id="ing-chips"></div>
+      <div class="ing-hints" id="ing-hints"></div>
+    </div>
+    <div id="ing-res" hidden></div>
     <div id="r-hero"></div>
     <div class="filters panel">
       <label class="search"><svg><use href="#i-search"/></svg><input id="r-q" type="search" placeholder="Cerca: cavolo, aneto, kimchi…" aria-label="Cerca ricette"></label>
@@ -250,7 +257,7 @@
         </div>
         <div class="two">
           <label class="field"><span>Inizio</span><input id="jf-date" type="date" required></label>
-          <label class="field"><span>Giorni base a 20 °C</span><input id="jf-base" type="number" inputmode="decimal" min="1" max="120" step="0.5" value="7"></label>
+          <label class="field"><span id="jf-base-l">Giorni base a 20 °C</span><input id="jf-base" type="number" inputmode="decimal" min="1" max="120" step="0.5" value="7"><small class="hint" id="jf-base-h" style="margin:0"></small></label>
         </div>
         <div class="field"><span><svg class="ic"><use href="#i-thermo"/></svg>Temperatura di casa <output id="jf-temp-o"></output></span><input type="range" id="jf-temp" min="12" max="30" step="0.5" value="20" class="plain temp"></div>
         <div class="seg small" id="jf-tmode" role="radiogroup" aria-label="Temperatura usata">
@@ -278,6 +285,7 @@
   </form>
 </dialog>
 
+<dialog id="dlg-ask" class="sheet ask" aria-labelledby="ask-t"><div class="ask-in"><p id="ask-t"></p><div class="actions"><button class="btn ghost" type="button" id="ask-n">No</button><button class="btn primary" type="button" id="ask-y">Si</button></div></div></dialog>
 <dialog id="dlg-d" class="sheet" aria-labelledby="dd-title"><div class="sheet-in" id="dd-body"></div></dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

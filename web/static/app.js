@@ -460,7 +460,7 @@ function jarActions(root) {
       if (a === 'del') {
         if (!b.classList.contains('armed')) { b.classList.add('armed'); b.innerHTML = 'Sicuro?'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.innerHTML = icon('trash'); } }, 3000); return; }
         await api('/api/jars/' + id, { method: 'DELETE' }); JARS = JARS.filter(x => x.id !== id); toast('Eliminato');
-      } else if (a === 'frigo') { upsertJar(await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo', fridge_date: isoToday() } })); toast('In frigo'); }
+      } else if (a === 'frigo') { const nj = await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo', fridge_date: isoToday() } }); upsertJar(nj); toast('In frigo'); renderJars(); offerRealBase(nj); return; }
       else if (a === 'finito') { upsertJar(await api('/api/jars/' + id, { method: 'PUT', body: { status: 'finito' } })); toast('Finito'); }
       else if (a === 'riapri') { upsertJar(await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo' } })); toast('Riaperto'); }
       renderJars();
@@ -535,6 +535,7 @@ function openDetail(id) {
         <div class="legend"><span><i style="background:#8be36b"></i>accumulato</span><span><i style="background:#c9d4cb;opacity:.6"></i>previsto</span>${Object.entries({ ARPA: '#5ab8ff', casa: '#8be36b', misurata: '#f5b544', previsione: '#ba68c8' }).map(([k, c]) => `<span><i style="background:${c};border-radius:50%"></i>${k}</span>`).join('')}</div>
       </div>
       <div>
+        ${j.base_info ? `<div class="box">${baseEditor('jar:' + j.id, j.base_info.eff, j.base_info.default, j.base_info.mode === 'tuo', j.base_info.src === 'ricetta' ? 'dalla ricetta' : j.base_info.src === 'kombucha' ? 'dal kombucha' : 'generico')}</div>` : ''}
         <div class="box"><h4>Temperatura usata</h4>
           <div class="days7">${last7.map(p => `<div title="${SRC[p.src] || p.src}"><span>${p.d.slice(8, 10)}-${p.d.slice(5, 7)}</span><b>${nf(p.t, p.t % 1 ? 1 : 0)}°</b><i style="background:${SRC_C[p.src] || '#93a398'}"></i></div>`).join('') || '<span class="hint">—</span>'}</div>
           <p class="hint">${j.temp_mode === 'fissa' ? 'Fissa: sempre la tua temperatura.' : 'Auto: estate (giu–set) media del giorno ARPA Torino Alenia; inverno la tua temperatura di casa.'} Una tua misura vale 7 giorni.</p></div>
@@ -569,6 +570,65 @@ function initDetail() {
   });
 }
 
+/* ---------- tempo base modificabile ---------- */
+function baseEditor(key, eff, def, custom, note) {
+  return `<div class="basebox" data-key="${key}">
+    <div class="bb-head"><span>Tempo base a 20 °C</span><span class="bb-tag ${custom ? 'tuo' : 'def'}">${custom ? 'tuo' : 'default'}</span></div>
+    <div class="mrow"><span class="inp"><input type="number" inputmode="decimal" min="1" max="120" step="0.5" value="${Math.round(eff * 10) / 10}" aria-label="Giorni base a 20 gradi"><i>giorni</i></span>
+      <button class="btn ghost" type="button" data-base="save">${icon('check')}Salva</button>
+      <button class="btn ghost" type="button" data-base="reset"${custom ? '' : ' disabled'}>${icon('undo')}Ripristina</button></div>
+    <p class="hint">Default ${nf(def, def % 1 ? 1 : 0)} gg${note ? ' · ' + note : ''}. Assaggio al 55 %, pronto al 100 %, minimo 3 giorni.</p></div>`;
+}
+async function refreshAll() {
+  const [d, j] = await Promise.all([api('/api/data'), api('/api/jars')]);
+  DATA = d; JARS = j; RBY = new Map(DATA.recipes.map(r => [r.id, r]));
+  renderJars(); renderKombuStatic();
+  if ($('#v-ricette').classList.contains('on')) { renderHero(); renderRecipes(); }
+  if ($('#v-adatta').classList.contains('on')) adaptRender(false);
+}
+async function saveBase(key, days) {
+  if (key.startsWith('jar:')) {
+    const id = +key.slice(4), body = days == null ? { base_mode: 'auto' } : { base_mode: 'tuo', base_days: days };
+    upsertJar(await api('/api/jars/' + id, { method: 'PUT', body }));
+  } else await api('/api/base', { method: 'POST', body: { key, days } });
+  await refreshAll();
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-base]'); if (!b) return;
+  const box = b.closest('.basebox'), key = box.dataset.key;
+  let days = null;
+  if (b.dataset.base === 'save') {
+    days = num(box.querySelector('input').value);
+    if (!(days >= 1 && days <= 120)) { toast('Da 1 a 120 giorni', true); return; }
+  }
+  b.disabled = true;
+  try {
+    await saveBase(key, days);
+    toast(days == null ? 'Ripristinato il default' : 'Tempo base salvato: date ricalcolate');
+    if ($('#dlg-r').open && key.startsWith('recipe:')) openRecipe(+key.slice(7));
+    if ($('#dlg-d').open && DD != null) openDetail(DD);
+  } catch (err) { toast(err.message, true); } finally { b.disabled = false; }
+});
+function ask(text, yes = 'Sì', no = 'No') {
+  return new Promise(res => {
+    const d = $('#dlg-ask');
+    $('#ask-t').innerHTML = text; $('#ask-y').textContent = yes; $('#ask-n').textContent = no;
+    const done = v => { d.close(); res(v); };
+    $('#ask-y').onclick = () => done(true); $('#ask-n').onclick = () => done(false);
+    d.showModal();
+  });
+}
+async function offerRealBase(j) {
+  const bi = j.base_info, r = j.ready;
+  if (!bi || !r || bi.src === 'vaso' || j.continuous || !(r.e >= 1)) return;
+  const real = Math.round(r.e * 2) / 2;
+  if (real < 3.5 || Math.abs(real - bi.default) < .5) return;   // mai sotto il minimo della guida
+  const what = bi.src === 'kombucha' ? 'del kombucha' : 'di questa ricetta';
+  const ok = await ask(`È andato in frigo dopo <b>${nf(real, real % 1 ? 1 : 0)} giorni</b> equivalenti a 20 °C.<br>Uso questo come tempo base ${what}? <small style="color:var(--mut)">(ora ${nf(bi.default, bi.default % 1 ? 1 : 0)} gg)</small>`, 'Sì, aggiorna', 'No');
+  if (!ok) return;
+  try { await saveBase(bi.src === 'kombucha' ? 'kombucha' : `recipe:${j.recipe_id}`, real); toast('Tempo base aggiornato'); } catch (err) { toast(err.message, true); }
+}
+
 /* ---------- modale nuovo / modifica vaso ---------- */
 let JF = null;
 function recipeOptions(sel, withNone) {
@@ -585,7 +645,7 @@ function openJar(pre = {}) {
   $('#jf-date').value = (pre.start_date || isoToday()).slice(0, 10);
   $('#jf-temp').value = pre.temp_c ?? 20;
   const r = JF.recipe_id && RBY.get(JF.recipe_id);
-  $('#jf-base').value = pre.base_days ?? (JF.kind === 'kombucha' ? 12 : r ? Math.round(base20(r.min_time_days, r.target_temp_c, r.q10) * 2) / 2 : 7);
+  $('#jf-base').value = pre.base_mode === 'tuo' && pre.base_days ? pre.base_days : jfDefault();
   const g = (v, d = 0) => (v ? Math.round(v * Math.pow(10, d)) / Math.pow(10, d) : '');
   $('#jf-net').value = g(pre.net_g); $('#jf-water').value = g(pre.water_g); $('#jf-salt').value = g(pre.salt_g, 1);
   $('#jf-kw').value = g(pre.water_g); $('#jf-ks').value = g(pre.sugar_g); $('#jf-kt').value = g(pre.tea_g, 1); $('#jf-kst').value = g(pre.starter_g); $('#jf-ksc').value = g(pre.scoby_g);
@@ -602,15 +662,22 @@ function jfKind(k, keep) {
   JF.kind = k; $('#j-form').dataset.kind = k; segSet('#jf-kind', k);
   if (!keep) {
     const b = num($('#jf-base').value);
-    if (k === 'kombucha' && (b === 7 || !b)) $('#jf-base').value = 12;
-    if (k === 'verdure' && b === 12) $('#jf-base').value = 7;
+    $('#jf-base').value = jfDefault();
     if (k === 'kombucha' && !$('#jf-name').value.trim()) $('#jf-name').value = 'Kombucha ' + dIT($('#jf-date').value || isoToday());
   }
   $('#jf-name').placeholder = k === 'kombucha' ? 'Es. Kombucha zenzero' : 'Es. Crauti di ottobre';
 }
+function jfDefault() {
+  if (JF.kind === 'kombucha') return KBD().base_eff ?? 12;
+  const r = (+$('#jf-recipe').value && RBY.get(+$('#jf-recipe').value)) || (JF.recipe_id && RBY.get(JF.recipe_id));
+  return r ? Math.round(rBase(r) * 2) / 2 : 7;
+}
 function jfMethod(m) { JF.method = m; segSet('#jf-method', m); $('#jf-water-f').hidden = m !== 'salamoia'; }
 function jfUpdate(anim) {
   const T = num($('#jf-temp').value), base = num($('#jf-base').value) || 7, f = Math.pow(Q10, (T - 20) / 10);
+  const def = jfDefault(), mine = Math.abs(base - def) > .01;
+  $('#jf-base-l').innerHTML = `Giorni base a 20 °C <small class="bb-tag ${mine ? 'tuo' : 'def'}">${mine ? 'tuo' : 'default'}</small>`;
+  $('#jf-base-h').textContent = `default ${nf(def, def % 1 ? 1 : 0)} gg`;
   const ready = Math.max(3, Math.max(base, 3.5) / f), taste = Math.max(.55 * base, 2) / f;
   $('#jf-temp-o').textContent = nf(T, T % 1 ? 1 : 0) + ' °C';
   $('#jf-temp').style.setProperty('--p', ((T - 12) / 18 * 100) + '%');
@@ -635,7 +702,7 @@ function initJarForm() {
       jfMethod(r.method); JF.color = '';
       $$('#jf-colors button').forEach(b => b.setAttribute('aria-pressed', 'false'));
       if (!$('#jf-name').value.trim()) $('#jf-name').value = r.name;
-      $('#jf-base').value = Math.round(base20(r.min_time_days, r.target_temp_c, r.q10) * 2) / 2;
+      $('#jf-base').value = jfDefault();
       $('#jf-net').value = Math.round(r.total_weight_g); $('#jf-salt').value = Math.round(r.salt_g * 10) / 10;
       $('#jf-water').value = r.water_ml ? Math.round(r.water_ml) : '';
     }
@@ -655,7 +722,8 @@ function initJarForm() {
     const kb = JF.kind === 'kombucha', n0 = s => num($(s).value) || 0;
     const body = {
       name, kind: JF.kind, temp_mode: JF.tmode, start_date: $('#jf-date').value || isoToday(),
-      temp_c: num($('#jf-temp').value), base_days: num($('#jf-base').value) || (kb ? 12 : 7), q10: Q10, notes: $('#jf-notes').value.trim(),
+      temp_c: num($('#jf-temp').value), base_days: num($('#jf-base').value) || jfDefault(), q10: Q10,
+      base_mode: Math.abs((num($('#jf-base').value) || jfDefault()) - jfDefault()) > .01 ? 'tuo' : 'auto', notes: $('#jf-notes').value.trim(),
       ...(kb
         ? { method: 'secco', recipe_id: null, color: '', water_g: n0('#jf-kw'), sugar_g: n0('#jf-ks'), tea_g: n0('#jf-kt'), starter_g: n0('#jf-kst'), scoby_g: n0('#jf-ksc'), continuous: $('#jf-cont').checked ? 1 : 0, net_g: 0, salt_g: 0 }
         : { method: JF.method, recipe_id: +$('#jf-recipe').value || null, color: JF.color, net_g: n0('#jf-net'), water_g: JF.method === 'salamoia' ? n0('#jf-water') : 0, salt_g: n0('#jf-salt') })
@@ -677,6 +745,8 @@ function initJarForm() {
    ====================================================== */
 const SEASONS = [['now', 'Adesso'], ['Primavera', 'Primavera', [3, 4, 5]], ['Estate', 'Estate', [6, 7, 8]], ['Autunno', 'Autunno', [9, 10, 11]], ['Inverno', 'Inverno', [12, 1, 2]]];
 const F = { q: '', m: null, s: null, veg: '' };
+const rBase = r => (r.base_eff ?? base20(r.min_time_days, r.target_temp_c, r.q10));
+const rMin = r => Math.round(adjDays(rBase(r), r.target_temp_c, r.q10) * 10) / 10;
 const rPct = r => r.method === 'salamoia' ? (r.brine_pct || (r.water_ml ? r.salt_g / r.water_ml * 100 : 0)) : (r.total_weight_g ? r.salt_g / r.total_weight_g * 100 : 0);
 const cleanName = n => n.replace(/\s+\d{2}-\d{2}-\d{2}$/, '');
 const starsHTML = n => `<span class="stars" aria-label="${n} stelle su 5">${[1, 2, 3, 4, 5].map(i => `<svg class="${i <= n ? 'on' : ''}"><use href="#i-star"/></svg>`).join('')}</span>`;
@@ -686,7 +756,7 @@ function rCard(r) {
     <div class="rtop"><span class="mbadge ${r.method}">${r.method === 'secco' ? 'a secco' : 'salamoia'}</span>${r.id === FEATURED ? `<span class="feat" title="In evidenza"><svg><use href="#i-star"/></svg></span>` : ''}
       <div class="jarstage">${jarSVG({ ...look, fill: .82, bubbles: 4, seed: r.id, alt: '' })}</div></div>
     <div class="rb"><h3>${esc(r.name)}${DUP.has(r.name) ? ` <small style="color:var(--mut2);font:500 12px var(--f-sans)">#${r.id}</small>` : ''}</h3>
-      <div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span><span>${nf(r.salt_g, r.salt_g < 10 && r.salt_g % 1 ? 1 : 0)}<small>g sale</small></span><span>${fp(Math.round(rPct(r) * 10) / 10)}<small>%</small></span><span>${nf(r.min_time_days, r.min_time_days % 1 ? 1 : 0)}<small>gg</small></span></div>
+      <div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span><span>${nf(r.salt_g, r.salt_g < 10 && r.salt_g % 1 ? 1 : 0)}<small>g sale</small></span><span>${fp(Math.round(rPct(r) * 10) / 10)}<small>%</small></span><span>${nf(rMin(r), rMin(r) % 1 ? 1 : 0)}<small>gg</small></span></div>
       <div class="vdots">${v.slice(0, 4).map(i => `<span><i style="background:${vegColor(i.name)}"></i>${esc(i.name)}</span>`).join('')}</div>
       ${starsHTML(r.rating || 0)}</div></button>`;
 }
@@ -699,7 +769,7 @@ function renderHero() {
     <div><span class="ribbon"><svg><use href="#i-star"/></svg>In evidenza</span>
       <h2>${nm.replace(/(sedano rapa)$/i, '<em>$1</em>')}</h2>
       <p>${r.method === 'secco' ? 'A secco' : 'In salamoia'}${date ? ` · fatta il ${date}` : ''}</p>
-      <div class="stats"><div class="stat"><b>${nf(r.total_weight_g)} g</b><small>verdure</small></div><div class="stat"><b>${nf(r.salt_g)} g</b><small>sale</small></div><div class="stat ok"><b>${fp(Math.round(p * 100) / 100)} %</b><small>nel range</small></div><div class="stat"><b>${nf(r.target_temp_c)} °C</b><small>temperatura</small></div><div class="stat"><b>${nf(r.min_time_days)}+ gg</b><small>minimo</small></div></div>
+      <div class="stats"><div class="stat"><b>${nf(r.total_weight_g)} g</b><small>verdure</small></div><div class="stat"><b>${nf(r.salt_g)} g</b><small>sale</small></div><div class="stat ok"><b>${fp(Math.round(p * 100) / 100)} %</b><small>nel range</small></div><div class="stat"><b>${nf(r.target_temp_c)} °C</b><small>temperatura</small></div><div class="stat"><b>${nf(rMin(r))}+ gg</b><small>minimo</small></div></div>
     </div></div>`;
   settle($('#r-hero'));
 }
@@ -763,12 +833,13 @@ function openRecipe(id) {
           ${tile(nf(r.total_weight_g) + ' g', 'verdure')}${tile(nf(r.salt_g, r.salt_g % 1 && r.salt_g < 10 ? 1 : 0) + ' g', 'sale')}
           ${tile(fp(Math.round(p * 100) / 100) + ' %', r.method === 'secco' ? 'sulle verdure' : "sull'acqua", z === 'ok' ? 'ok' : '')}
           ${r.method === 'salamoia' ? tile(nf(r.water_ml) + ' ml', 'acqua') : ''}
-          ${tile(nf(r.target_temp_c) + ' °C', 'temperatura')}${tile(nf(r.min_time_days, r.min_time_days % 1 ? 1 : 0) + '+ gg', 'minimo')}
+          ${tile(nf(r.target_temp_c) + ' °C', 'temperatura')}${tile(nf(rMin(r), rMin(r) % 1 ? 1 : 0) + '+ gg', 'minimo')}
         </div>
         <div class="actions" style="margin-top:0"><button class="btn primary" type="button" id="dr-start" style="flex:1;margin-left:0">${icon('jar')}Avvia vaso</button><button class="btn ghost" type="button" id="dr-adapt" style="flex:1">${icon('resize')}Adatta</button></div>
       </div>
       <div>
         <section class="rd-sec"><h4>Il tuo voto</h4><div class="rate"><div class="rate-stars" id="dr-stars" role="radiogroup" aria-label="Voto">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-s="${i}" role="radio" aria-checked="${i === (r.rating || 0)}" aria-label="${i} stelle" class="${i <= (r.rating || 0) ? 'on' : ''}"><svg><use href="#i-star"/></svg></button>`).join('')}</div><span class="saved" id="dr-rs">Salvato</span></div></section>
+        <section class="rd-sec">${baseEditor('recipe:' + r.id, rBase(r), r.base_default ?? rBase(r), !!r.base_custom, 'vale anche per i vasi in corso')}</section>
         <section class="rd-sec"><h4>Verdure</h4><ul class="ing">${veg.map(i => `<li><i style="background:${vegColor(i.name)}"></i><span>${esc(i.name)}</span><em>${nf(i.g)} g</em><div class="bar"><b data-w="${(i.g / maxg * 100).toFixed(1)}" style="width:0;background:${vegColor(i.name)}"></b></div></li>`).join('') || '<li><span class="extra">—</span></li>'}</ul></section>
         ${sp.length ? `<section class="rd-sec"><h4>Spezie</h4><div class="spices">${sp.map(i => `<span><i style="background:${spColor(i.name)}"></i>${esc(i.name)}${i.g > 0 ? ` <b style="color:var(--mut);font-weight:600">${nf(i.g)} g</b>` : ''}</span>`).join('')}</div></section>` : ''}
         ${steps.length ? `<section class="rd-sec"><h4>Come si fa</h4><ol class="steps">${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>${extra.length ? `<p class="extra" style="margin-top:10px">${extra.map(esc).join('<br>')}</p>` : ''}</section>` : ''}
@@ -798,8 +869,327 @@ function openRecipe(id) {
   };
   $('#dr-save').addEventListener('click', saveNotes);
   $('#dr-notes').addEventListener('blur', saveNotes);
-  $('#dr-start').addEventListener('click', () => { d.close(); openJar({ recipe_id: r.id, name: r.name, method: r.method, net_g: r.total_weight_g, water_g: r.water_ml, salt_g: r.salt_g, base_days: Math.round(base20(r.min_time_days, r.target_temp_c, r.q10) * 2) / 2 }); });
+  $('#dr-start').addEventListener('click', () => { d.close(); openJar({ recipe_id: r.id, name: r.name, method: r.method, net_g: r.total_weight_g, water_g: r.water_ml, salt_g: r.salt_g }); });
   $('#dr-adapt').addEventListener('click', () => { d.close(); A.rid = r.id; adaptPickRecipe(r, true); go('adatta'); });
+}
+
+/* ======================================================
+   RICERCA PER INGREDIENTI  (solo codice, istantanea, offline)
+   ====================================================== */
+const ING_SYN = {
+  'cavolo': 'Cavolo cappuccio', 'cavolo bianco': 'Cavolo cappuccio', 'cappuccio': 'Cavolo cappuccio', 'crauti': 'Cavolo cappuccio',
+  'verza': 'Cavolo verza', 'rapa rossa': 'Barbabietola', 'bietola rossa': 'Barbabietola', 'barbabietola rossa': 'Barbabietola',
+  'cetriolino': 'Cetriolo', 'cornichon': 'Cetriolo', 'zucchino': 'Zucchina', 'cipollotto': 'Cipolla', 'scalogno': 'Cipolla',
+  'fagiolo verde': 'Fagiolino', 'cavolo cinese': 'Pak choi', 'bok choy': 'Pak choi', 'pakchoi': 'Pak choi', 'mais': 'Mais (chicchi)', 'granoturco': 'Mais (chicchi)',
+  'bietola': 'Bietola costa', 'biete': 'Bietola costa', 'coste': 'Bietola costa', 'celeriaco': 'Sedano rapa', 'sedano di verona': 'Sedano rapa',
+  'rafano giapponese': 'Daikon', 'pepe': 'Pepe nero', 'pepe in grani': 'Pepe nero', 'origano': 'Origano (secco)', 'senape': 'Semi di senape',
+  'pane nero': 'Pane di segale', 'segale': 'Pane di segale', 'rapa bianca': 'Rapa', 'pomodori verdi': 'Pomodoro verde', 'cavolini': 'Cavolini di Bruxelles'
+};
+const ING_STOP = new Set(['e', 'ed', 'di', 'con', 'il', 'la', 'le', 'i', 'gli', 'lo', 'un', 'una', 'g', 'gr', 'grammi', 'kg', 'ho', 'del', 'della', 'dei', 'delle', 'piu', 'poi']);
+const n2 = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const stemW = w => w.length > 3 ? w.replace(/(io|ie|ia|a|e|i|o)$/, '') : w;
+const stemP = words => words.map(stemW).join(' ');
+function osa(a, b) {   // distanza di Damerau-Levenshtein (versione OSA)
+  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    const c = a[i - 1] === b[j - 1] ? 0 : 1;
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[m][n];
+}
+let VOC = null;   // {list:[{name,type,color}], keys: Map(stemKey -> name)}
+function buildVoc() {
+  const vegNames = new Set(DATA.vegetables.map(v => v.name));
+  const names = new Map();
+  DATA.vegetables.forEach(v => names.set(v.name, 'vegetable'));
+  DATA.spices.forEach(s => { if (!names.has(s)) names.set(s, 'spice'); });
+  DATA.recipes.forEach(r => r.items.forEach(i => { if (!names.has(i.name)) names.set(i.name, vegNames.has(i.name) ? 'vegetable' : i.type); }));
+  const list = [...names].map(([name, type]) => ({ name, type, color: type === 'vegetable' ? vegColor(name) : spColor(name) }));
+  const keys = new Map();
+  const add = (k, name) => { if (k && !keys.has(k)) keys.set(k, name); };
+  for (const e of list) { const w = n2(e.name).split(' '); add(stemP(w), e.name); add(stemW(w.join('')), e.name); }
+  for (const [s, t] of Object.entries(ING_SYN)) if (names.has(t)) { const w = n2(s).split(' '); add(stemP(w), t); add(stemW(w.join('')), t); }
+  VOC = { list, keys, byName: new Map(list.map(e => [e.name, e])) };
+}
+const isNum = w => /^\d+([.,]\d+)?(g|gr|kg)?$/.test(w);
+function parseIng(text) {
+  const words = n2(text).split(' ').filter(Boolean), found = [], unknown = [];
+  let i = 0;
+  while (i < words.length) {
+    const w = words[i];
+    if (isNum(w)) {
+      const v = parseFloat(w.replace(',', '.')) * (/kg$/.test(w) || words[i + 1] === 'kg' ? 1000 : 1);
+      if (found.length && v > 0) found[found.length - 1].g = v;
+      i++; continue;
+    }
+    if (ING_STOP.has(w)) { i++; continue; }
+    let hit = null;
+    for (let L = Math.min(3, words.length - i); L >= 1 && !hit; L--) {
+      const span = words.slice(i, i + L);
+      if (span.some(x => isNum(x) || (L > 1 && ING_STOP.has(x) && x !== 'di'))) continue;
+      const k1 = stemP(span), k2 = stemW(span.join(''));
+      const name = VOC.keys.get(k1) || VOC.keys.get(k2);
+      if (name) hit = { name, L };
+    }
+    if (!hit) {   // inizio di un nome composto, solo se univoco ("cavolini" -> Cavolini di Bruxelles)
+      const st = stemW(w), cands = VOC.list.filter(e => stemW(n2(e.name).split(' ')[0]) === st);
+      if (cands.length === 1) hit = { name: cands[0].name, L: 1 };
+    }
+    if (hit) { if (!found.some(f => f.name === hit.name)) found.push({ name: hit.name }); i += hit.L; continue; }
+    unknown.push({ word: w, sugg: suggest(w) });
+    i++;
+  }
+  return { found, unknown };
+}
+function suggest(w) {
+  const st = stemW(w), thr = st.length <= 4 ? 1 : st.length <= 7 ? 2 : 3, best = new Map();
+  for (const [k, name] of VOC.keys) {
+    const parts = [k, ...k.split(' ')];
+    for (const p of parts) {
+      if (Math.abs(p.length - st.length) > thr) continue;
+      const d = osa(st, p);
+      if (d <= thr && (!best.has(name) || best.get(name) > d)) best.set(name, d);
+    }
+  }
+  return [...best].sort((a, b) => a[1] - b[1]).slice(0, 2).map(x => x[0]);
+}
+/* --- stato e UI --- */
+const IS = { items: [], live: [], unknown: [], lordo: '', tara: '', T: 20, method: null, saved: null };
+const selNames = () => { const s = []; for (const x of [...IS.items, ...IS.live]) if (!s.includes(x.name)) s.push(x.name); return s; };
+function ingChips() {
+  const chip = (x, live) => {
+    const e = VOC.byName.get(x.name) || { color: '#9ccc65', type: 'vegetable' };
+    return `<span class="ichip${live ? ' live' : ''}" data-n="${esc(x.name)}"><i style="background:${e.color}"></i>${esc(x.name)}${!live && e.type === 'vegetable' ? `<input type="number" inputmode="decimal" min="0" step="10" placeholder="g" value="${x.g || ''}" aria-label="Grammi di ${esc(x.name)}">` : ''}${live ? '' : `<button type="button" aria-label="Togli ${esc(x.name)}">${icon('x')}</button>`}</span>`;
+  };
+  const liveOnly = IS.live.filter(l => !IS.items.some(x => x.name === l.name));
+  $('#ing-chips').innerHTML = IS.items.map(x => chip(x, false)).join('') + liveOnly.map(x => chip(x, true)).join('');
+  $('#ing-hints').innerHTML = IS.unknown.map(u => u.sugg.length
+    ? `<span class="ihint">“${esc(u.word)}”? Intendevi ${u.sugg.map(s => `<button type="button" data-sugg="${esc(s)}" data-w="${esc(u.word)}">${esc(s)}</button>`).join(' o ')}?</span>`
+    : `<span class="ihint ko">“${esc(u.word)}” non lo conosco</span>`).join('');
+}
+function ingAutocomplete() {
+  const v = $('#ing-q').value, last = /\s$/.test(v) ? '' : n2(v).split(' ').pop() || '';
+  const box = $('#ing-ac');
+  if (last.length < 2 || isNum(last) || !IS.unknown.some(u => u.word === last)) { box.hidden = true; return; }
+  const sel = selNames();
+  let c = VOC.list.filter(e => !sel.includes(e.name) && n2(e.name).split(' ').some(w => w.startsWith(last)));
+  if (c.length < 3) for (const s of suggest(last)) { const e = VOC.byName.get(s); if (e && !c.includes(e) && !sel.includes(s)) c.push(e); }
+  c = c.slice(0, 7);
+  if (!c.length) { box.hidden = true; return; }
+  box.innerHTML = c.map((e, i) => `<button type="button" role="option" data-ac="${esc(e.name)}" class="${i ? '' : 'on'}"><i style="background:${e.color}"></i>${esc(e.name)}<small>${e.type === 'vegetable' ? 'verdura' : 'spezia'}</small></button>`).join('');
+  box.hidden = false;
+}
+function ingParseLive() {
+  const p = parseIng($('#ing-q').value);
+  IS.live = p.found; IS.unknown = p.unknown;
+  for (const f of p.found) if (f.g) { const it = IS.items.find(x => x.name === f.name); if (it) it.g = f.g; }
+  IS.saved = null;
+  ingChips(); ingAutocomplete(); ingResults(true);
+}
+function ingCommit(extraName, dropWord) {
+  for (const f of IS.live) if (!IS.items.some(x => x.name === f.name)) IS.items.push({ name: f.name, g: f.g || '' });
+  if (extraName && !IS.items.some(x => x.name === extraName)) IS.items.push({ name: extraName, g: '' });
+  const rest = IS.unknown.map(u => u.word).filter(w => w !== dropWord);
+  $('#ing-q').value = rest.length ? rest.join(' ') + ' ' : '';
+  IS.live = []; IS.unknown = [];
+  IS.method = null; IS.saved = null;
+  const p = parseIng($('#ing-q').value); IS.unknown = p.unknown;
+  ingChips(); $('#ing-ac').hidden = true; ingResults(true);
+}
+/* --- ricetta generata con le regole della guida --- */
+function genRecipe() {
+  const names = selNames(), vmap = new Map(DATA.vegetables.map(v => [v.name, v]));
+  const vegs = names.filter(n => vmap.has(n)), spices = names.filter(n => !vmap.has(n));
+  if (!vegs.length) return null;
+  const grams = n => num((IS.items.find(x => x.name === n) || IS.live.find(x => x.name === n) || {}).g) || 0;
+  const gSum = vegs.reduce((s, n) => s + grams(n), 0), lordo = num(IS.lordo) || 0, tara = num(IS.tara) || 0;
+  const net = lordo > 0 ? Math.max(0, lordo - tara) : gSum > 0 ? gSum : 1000;
+  const example = !(lordo > 0) && !(gSum > 0);
+  const share = n => gSum > 0 ? grams(n) / gSum : 1 / vegs.length;
+  let sal = 0, sec = 0;
+  for (const n of vegs) {
+    const v = vmap.get(n), w = share(n);
+    const cut = v.cut_style || '', thin = /sottil|fini|fettine|grattugi|julienne/i.test(cut);
+    if (/salamoia/i.test(v.notes || '') || (!thin && /interi|cimette|spicchi|chicchi/i.test(cut))) sal += w;
+    if (/secco|crauti|kimchi/i.test(v.notes || '') || thin) sec += w;
+  }
+  const auto = sal > sec ? 'salamoia' : 'secco', method = IS.method || auto;
+  const base = Math.max(...vegs.map(n => vmap.get(n).base_days_20c || 7)), T = IS.T, f = Math.pow(Q10, (T - 20) / 10);
+  const ready = Math.max(3, Math.max(base, 3.5) / f), taste = Math.max(.55 * base, 2) / f;
+  const pct = method === 'secco' ? 2 : 3;
+  const water = method === 'salamoia' ? Math.round(net * (1 / .7 - 1) / 10) * 10 : 0;
+  const salt = method === 'secco' ? net * pct / 100 : water * pct / 100;
+  const low = s => s.charAt(0).toLowerCase() + s.slice(1);
+  const lst = vegs.map((n, i) => i ? low(n) : n);
+  const name = (lst.length > 1 ? lst.slice(0, -1).join(', ') + ' e ' + lst[lst.length - 1] : lst[0]) + (method === 'secco' ? ' a secco' : ' in salamoia');
+  const sR = nf(salt, salt < 10 ? 1 : 0), dT = nf(taste, 0), dR = nf(ready, 0);
+  const steps = method === 'secco' ? [
+    'Pela e taglia a fettine sottili o grattugia.',
+    `Pesa le verdure al netto della tara: ${nf(net)} g.`,
+    `Aggiungi ${sR} g di sale (${pct} %) e massaggia finché fanno liquido.`,
+    'Pressa nel vaso: liquido sopra le verdure, 2–3 cm liberi in cima.',
+    `Fermenta a ${nf(T)} °C: assaggia dal giorno ${dT}, pronto verso il giorno ${dR}. Poi frigo.`
+  ] : [
+    'Lava le verdure; lasciale intere o a pezzi grossi.',
+    `Sciogli ${sR} g di sale in ${nf(water)} g d'acqua (${pct} %).`,
+    `Metti nel vaso ${nf(net)} g di verdure${spices.length ? ' e le spezie' : ''} e copri con la salamoia.`,
+    'Tienile sotto con un peso; lascia 2–3 cm liberi in cima.',
+    `Fermenta a ${nf(T)} °C: assaggia dal giorno ${dT}, pronto verso il giorno ${dR}. Poi frigo.`
+  ];
+  const why = auto === 'secco' ? 'A secco: verdure da tagliare fini o grattugiare.' : 'Salamoia: verdure intere o a pezzi grossi.';
+  return { vegs, spices, net, example, method, auto, why, base, T, ready, taste, pct, water, salt, name, steps, share, grams };
+}
+function genLook(G) {
+  const layers = G.vegs.map(n => ({ c: vegColor(n), f: G.share(n) }));
+  const m = mix(layers), brine = G.method === 'salamoia' ? mix([{ c: toHex(m), f: .5 }, { c: '#f3d27a', f: .5 }]) : m;
+  return { layers, mode: G.method, liquid: rgba(brine, G.method === 'salamoia' ? .42 : .5), tint: rgba(m, .2), spices: G.spices.map(spColor) };
+}
+function genCard() {
+  const G = genRecipe();
+  if (!G) return `<div class="gen empty-gen"><p>Aggiungi almeno una verdura: con le sole spezie non creo una ricetta.</p></div>`;
+  const look = genLook(G);
+  return `<article class="gen" id="gen" data-m="${G.method}" style="--tint:${look.tint}">
+    <div class="gen-vis"><div class="jarstage" id="gen-jar">${jarSVG({ ...look, fill: .84, bubbles: 7, seed: 31, animate: true, alt: G.name })}</div></div>
+    <div class="gen-body">
+      <span class="ribbon"><svg><use href="#i-leaf"/></svg>Ricetta su misura</span>
+      <h2 id="gen-name">${esc(G.name)}</h2>
+      <p class="why">Nessuna ricetta le ha tutte: la creo con le regole della guida. ${G.why}</p>
+      <div class="seg small${G.method === 'salamoia' ? ' right' : ''}" id="gen-m" role="radiogroup" aria-label="Metodo">
+        <button type="button" role="radio" data-m="secco" aria-checked="${G.method === 'secco'}"><b>A secco</b><small>${G.auto === 'secco' ? 'consigliato' : '2 %'}</small></button>
+        <button type="button" role="radio" data-m="salamoia" aria-checked="${G.method === 'salamoia'}"><b>Salamoia</b><small>${G.auto === 'salamoia' ? 'consigliato' : '3 %'}</small></button>
+      </div>
+      <div class="gen-w weigh">
+        <label class="num"><span>Vaso + verdure</span><span class="inp"><input id="gen-lordo" type="number" inputmode="decimal" min="0" placeholder="0" value="${esc(IS.lordo)}"><i>g</i></span></label>
+        <span class="op" aria-hidden="true">−</span>
+        <label class="num"><span>Vaso vuoto</span><span class="inp"><input id="gen-tara" type="number" inputmode="decimal" min="0" placeholder="0" value="${esc(IS.tara)}"><i>g</i></span></label>
+      </div>
+      <div class="field"><span>${icon('thermo', 'ic')}Temperatura <output id="gen-t-o">${nf(IS.T)} °C</output></span><input type="range" class="plain temp" id="gen-t" min="14" max="28" step="1" value="${IS.T}"></div>
+      <div class="stats" id="gen-stats"></div>
+      <ol class="steps" id="gen-steps"></ol>
+      <div class="actions"><button class="btn primary" type="button" id="gen-start">${icon('jar')}Avvia vaso</button><button class="btn ghost" type="button" id="gen-save">${icon('book')}Salva ricetta</button></div>
+    </div></article>`;
+}
+function genUpdate() {
+  const G = genRecipe(); if (!G || !$('#gen')) return;
+  if ($('#gen').dataset.m !== G.method) { $('#gen').outerHTML = genCard(); settle($('#gen')); }
+  else $('#gen-jar').innerHTML = jarSVG({ ...genLook(G), fill: .84, bubbles: 7, seed: 31, alt: G.name });
+  $('#gen').style.setProperty('--tint', genLook(G).tint);
+  const tile = (b, s, cls = '') => `<div class="stat ${cls}"><b>${b}</b><small>${s}</small></div>`;
+  $('#gen-name').textContent = G.name;
+  $('#gen-stats').innerHTML = tile(nf(G.net) + ' g', G.example ? 'verdure · esempio' : 'verdure nette')
+    + tile(nf(G.salt, G.salt < 10 ? 1 : 0) + ' g', `sale · ${G.pct} %`, 'ok')
+    + (G.method === 'salamoia' ? tile(nf(G.water) + ' g', 'acqua') : '')
+    + tile('~' + nf(G.taste, 0) + ' gg', 'assaggia') + tile('~' + nf(G.ready, 0) + ' gg', `pronto · base ${nf(G.base)} gg`);
+  $('#gen-steps').innerHTML = G.steps.map(s => `<li>${esc(s)}</li>`).join('');
+  $('#gen-t-o').textContent = nf(IS.T) + ' °C';
+  $('#gen-t').style.setProperty('--p', ((IS.T - 14) / 14 * 100) + '%');
+}
+function ingResults(rebuildGen) {
+  const sel = selNames(), on = sel.length > 0;
+  $('#ing-res').hidden = !on; $('#r-hero').hidden = on; $('.filters').hidden = on; $('#r-grid').hidden = on; $('#r-empty').hidden = true;
+  if (!on) { $('#r-empty').hidden = !!$('#r-grid').children.length; return; }
+  const scored = [];
+  for (const r of DATA.recipes) {
+    const have = new Set(r.items.map(i => i.name));
+    const cov = sel.filter(n => have.has(n)).length;
+    if (!cov) continue;
+    const extra = r.items.filter(i => i.type === 'vegetable' && !sel.includes(i.name)).length;
+    scored.push({ r, cov, extra });
+  }
+  scored.sort((a, b) => b.cov - a.cov || a.extra - b.extra || (b.r.rating || 0) - (a.r.rating || 0) || a.r.id - b.r.id);
+  const full = scored.filter(s => s.cov === sel.length), near = sel.length >= 2 ? scored.filter(s => s.cov === sel.length - 1) : [], rest = scored.filter(s => !full.includes(s) && !near.includes(s));
+  const lordo = num(IS.lordo) || 0, gSum = IS.items.reduce((s, x) => s + (num(x.g) || 0), 0), net = lordo > 0 ? Math.max(0, lordo - (num(IS.tara) || 0)) : gSum;
+  const card = s => {
+    let h = rCard(s.r).replace('<div class="rtop">', `<div class="rtop"><span class="cover ${s.cov === sel.length ? 'all' : ''}">copre ${s.cov}/${sel.length}</span>`);
+    if (net > 0) { const p = rPct(s.r), salt = s.r.method === 'secco' ? net * p / 100 : null; if (salt) h = h.replace('<div class="vdots">', `<div class="mysalt">con i tuoi ${nf(net)} g → <b>${nf(salt, salt < 10 ? 1 : 0)} g sale</b></div><div class="vdots">`); }
+    return h;
+  };
+  const head = (t, n) => `<h3 class="res-h">${t} <small>${n}</small></h3>`;
+  const keepGen = !rebuildGen && $('#gen');
+  let html = '';
+  if (!full.length) html += `<div id="gen-slot"></div>`;
+  if (full.length) html += head(full.length === 1 ? 'Ha tutto' : 'Hanno tutto', full.length) + `<div class="grid">${full.map(card).join('')}</div>`;
+  if (near.length) html += head('Quasi', near.length) + `<div class="grid">${near.map(card).join('')}</div>`;
+  if (rest.length) html += `<details class="others"><summary>Altre <b>${rest.length}</b></summary><div class="grid">${rest.map(card).join('')}</div></details>`;
+  if (full.length) html += `<div class="gen-offer"><button class="btn ghost" type="button" id="gen-open">${icon('leaf')}Oppure creane una su misura</button></div><div id="gen-slot"></div>`;
+  const oldGen = keepGen ? $('#gen') : null;
+  $('#ing-res').innerHTML = html;
+  const slot = $('#gen-slot');
+  if (slot && (!full.length || IS.genOpen)) {
+    if (oldGen) slot.replaceWith(oldGen); else { slot.outerHTML = genCard(); settle($('#gen') || document); }
+    genUpdate();
+  }
+}
+async function genSave() {
+  const G = genRecipe(); if (!G) return;
+  const vegItems = G.vegs.map(n => ({ type: 'vegetable', name: n, g: Math.round(G.net * G.share(n)) }));
+  const body = {
+    name: G.name, method: G.method, total_weight_g: G.net, brine_pct: G.method === 'salamoia' ? G.pct : null, target_temp_c: G.T,
+    min_time_days: Math.round(adjDays(G.base, G.T) * 10) / 10, salt_g: Math.round(G.salt * 10) / 10, water_ml: G.water,
+    notes: `Ingredienti: ${G.vegs.join(', ')}${G.spices.length ? '. Spezie: ' + G.spices.join(', ') : ''}. Creata il ${dIT(isoToday())}.\n` + G.steps.map((s, i) => `${i + 1}) ${s}`).join('\n'),
+    items: [...vegItems, ...G.spices.map(n => ({ type: 'spice', name: n, g: 0 }))]
+  };
+  const r = await api('/api/recipes', { method: 'POST', body });
+  IS.saved = r.id; IS.genOpen = false;
+  await refreshAll(); buildVoc();
+  toast('Salvata nel ricettario');
+  ingResults(true);
+  const c = $(`#ing-res .rcard[data-id="${r.id}"]`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('flash'); }
+}
+function initIngSearch() {
+  buildVoc();
+  const q = $('#ing-q');
+  q.addEventListener('input', ingParseLive);
+  q.addEventListener('keydown', e => {
+    const box = $('#ing-ac'), opts = $$('button', box), cur = opts.findIndex(o => o.classList.contains('on'));
+    if (!box.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault(); const n = (cur + (e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
+      opts.forEach((o, i) => o.classList.toggle('on', i === n)); return;
+    }
+    if (e.key === 'Tab' && !box.hidden && opts[cur]) { e.preventDefault(); acPick(opts[cur].dataset.ac); return; }
+    if (e.key === 'Enter') { e.preventDefault(); if (IS.live.length || !(!box.hidden && opts[cur])) ingCommit(); else acPick(opts[cur].dataset.ac); }
+    if (e.key === 'Backspace' && !q.value && IS.items.length) { IS.items.pop(); IS.method = null; ingChips(); ingResults(true); }
+    if (e.key === 'Escape') $('#ing-ac').hidden = true;
+  });
+  const acPick = name => {
+    const words = q.value.replace(/\S+$/, '');
+    q.value = words; const p = parseIng(words); IS.live = p.found; IS.unknown = p.unknown; ingCommit(name);
+    q.focus();
+  };
+  $('#ing-ac').addEventListener('mousedown', e => { const b = e.target.closest('[data-ac]'); if (b) { e.preventDefault(); acPick(b.dataset.ac); } });
+  q.addEventListener('blur', () => setTimeout(() => { $('#ing-ac').hidden = true; }, 150));
+  $('#ing-hints').addEventListener('click', e => { const b = e.target.closest('[data-sugg]'); if (b) ingCommit(b.dataset.sugg, b.dataset.w); });
+  $('#ing-chips').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = b.closest('.ichip').dataset.n; IS.items = IS.items.filter(x => x.name !== n); IS.method = null; ingChips(); ingResults(true);
+  });
+  $('#ing-chips').addEventListener('input', e => {
+    const inp = e.target.closest('input'); if (!inp) return;
+    const it = IS.items.find(x => x.name === inp.closest('.ichip').dataset.n); if (it) it.g = inp.value;
+    ingResults(false);
+  });
+  $('#ing-clear').addEventListener('click', () => { IS.items = []; IS.live = []; IS.unknown = []; IS.lordo = IS.tara = ''; IS.method = null; IS.genOpen = false; q.value = ''; ingChips(); ingResults(true); q.focus(); });
+  $('#ing-res').addEventListener('click', async e => {
+    const c = e.target.closest('.rcard'); if (c) return openRecipe(+c.dataset.id);
+    if (e.target.closest('#gen-open')) { IS.genOpen = true; ingResults(true); $('#gen')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    const m = e.target.closest('#gen-m button'); if (m) { IS.method = m.dataset.m; ingResults(true); return; }
+    if (e.target.closest('#gen-start')) {
+      const G = genRecipe(); if (!G) return;
+      openJar({ name: G.name, method: G.method, net_g: G.net, water_g: G.water, salt_g: Math.round(G.salt * 10) / 10, temp_c: G.T, base_days: G.base, base_mode: G.base !== 7 ? 'tuo' : 'auto', recipe_id: IS.saved || null, notes: G.vegs.join(', ') + (G.spices.length ? ' · ' + G.spices.join(', ') : '') });
+      return;
+    }
+    if (e.target.closest('#gen-save')) { const b = e.target.closest('#gen-save'); b.disabled = true; try { await genSave(); } catch (err) { toast(err.message, true); b.disabled = false; } }
+  });
+  $('#ing-res').addEventListener('input', e => {
+    if (e.target.id === 'gen-lordo') IS.lordo = e.target.value;
+    else if (e.target.id === 'gen-tara') IS.tara = e.target.value;
+    else if (e.target.id === 'gen-t') IS.T = +e.target.value;
+    else return;
+    genUpdate();
+  });
+  ingChips();
 }
 
 /* ======================================================
@@ -903,7 +1293,7 @@ function adaptRender(anim) {
   $('#a-jar').innerHTML = jarSVG({ ...look, fill: clamp(1 - head / jarMl, 0, 1) * .97, vegFrac: pf, bubbles: 6, seed: r.id, width: w, animate: anim, label: nf(A.L, A.L % 1 ? 2 : 0) + ' L', alt: 'Vaso da ' + A.L + ' litri' });
   if (anim) settle($('#a-jar'));
   const tile = (b, s, cls = '') => `<div class="stat ${cls}"><b>${b}</b><small>${s}</small></div>`;
-  $('#a-tiles').innerHTML = tile(nf(target) + ' g', 'verdure') + tile(nf(salt, salt < 10 ? 1 : 0) + ' g', `sale · ${fp(Math.round(pct * 100) / 100)} %`, 'ok') + (r.method === 'salamoia' ? tile(nf(water) + ' ml', 'acqua') : '') + tile(nf(r.min_time_days, r.min_time_days % 1 ? 1 : 0) + '+ gg', `a ${nf(r.target_temp_c)} °C`);
+  $('#a-tiles').innerHTML = tile(nf(target) + ' g', 'verdure') + tile(nf(salt, salt < 10 ? 1 : 0) + ' g', `sale · ${fp(Math.round(pct * 100) / 100)} %`, 'ok') + (r.method === 'salamoia' ? tile(nf(water) + ' ml', 'acqua') : '') + tile(nf(rMin(r), rMin(r) % 1 ? 1 : 0) + '+ gg', `a ${nf(r.target_temp_c)} °C`);
   const maxg = Math.max(1, ...veg.map(i => i.g * k));
   $('#a-items').innerHTML = veg.map(i => `<li><i style="background:${vegColor(i.name)}"></i><span>${esc(i.name)}</span><em><s>${nf(i.g)}</s>${nf(i.g * k)} g</em><div class="bar"><b style="width:${(i.g * k / maxg * 100).toFixed(1)}%;background:${vegColor(i.name)}"></b></div></li>`).join('')
     + sp.map(i => `<li><i style="background:${spColor(i.name)}"></i><span style="color:var(--tx2)">${esc(i.name)}</span><em>${i.g > 0 ? (A.spices ? `<s>${nf(i.g)}</s>${nf(i.g * k, i.g * k < 10 ? 1 : 0)} g` : `${nf(i.g)} g`) : 'a piacere'}</em></li>`).join('');
@@ -928,7 +1318,7 @@ function initAdapt() {
   $('#n-g').addEventListener('input', needRender);
   $('#a-start').addEventListener('click', () => {
     const { r, target, water, salt } = adaptLast || {}; if (!r) return;
-    openJar({ recipe_id: r.id, name: r.name, method: r.method, net_g: target, water_g: water, salt_g: Math.round(salt * 10) / 10, base_days: Math.round(base20(r.min_time_days, r.target_temp_c, r.q10) * 2) / 2 });
+    openJar({ recipe_id: r.id, name: r.name, method: r.method, net_g: target, water_g: water, salt_g: Math.round(salt * 10) / 10 });
   });
   $('#a-l').value = A.L; $('#a-head').value = A.head; $('#a-pf').value = A.pf; $('#a-spices').checked = A.spices;
   onView.adatta = () => adaptRender(true);
@@ -1013,6 +1403,7 @@ function renderKombuStatic() {
   const pos = p => ((p - 2) / 3.2 * 100).toFixed(1) + "%";
   $('#k-facts').innerHTML = `
     <article class="kfact"><div class="gill">${jarSVG({ ...kombuLook(), fill: .8, bubbles: 6, seed: 4, cloth: true }).replace('<svg ', '<svg style="height:92px;width:auto" ')}</div><small>1a fermentazione</small><b>${f1.days[0]}–${f1.days[1]} giorni</b><p>a ${f1.temp[0]}–${f1.temp[1]} °C · assaggia dal giorno ${f1.taste_from[0]}–${f1.taste_from[1]}</p></article>
+    <article class="kfact kbase">${baseEditor('kombucha', k.base_eff ?? 12, k.base_default ?? 12, !!k.base_custom, 'vale anche per i lotti in corso')}</article>
     <article class="kfact"><small>pH obiettivo</small><b>${nf(ph.target[0], 1)}–${nf(ph.target[1], 1)}</b>
       <div class="phbar" style="background:linear-gradient(90deg,#f5b544 0%,#8be36b ${pos(ph.target[0])},#8be36b ${pos(ph.target[1])},#f5b544 ${pos(ph.safe_below)},#ff5c7a calc(${pos(ph.safe_below)} + 2%),#ff5c7a 100%)"><span style="left:${pos(ph.target[0])}">${nf(ph.target[0], 1)}</span><span style="left:${pos(ph.target[1])}">${nf(ph.target[1], 1)}</span><span style="left:${pos(ph.safe_below)}">${nf(ph.safe_below, 1)}</span></div>
       <p>Sicuro sotto ${nf(ph.safe_below, 1)}. Striscia pH facoltativa.</p></article>
@@ -1041,7 +1432,7 @@ function initKombu() {
   const bind = (sel, key, isNum) => $(sel).addEventListener('input', e => { K[key] = isNum ? +e.target.value : e.target.value; kRender(); });
   bind('#k-l', 'L'); bind('#k-lordo', 'lordo'); bind('#k-tara', 'tara'); bind('#k-d', 'd');
   bind('#k-tea', 'tea', true); bind('#k-sug', 'sug', true); bind('#k-st', 'st', true);
-  const start = () => { const R = kCalc(); openJar({ kind: 'kombucha', name: 'Kombucha ' + dIT(isoToday()), water_g: R.water, sugar_g: R.sugar, tea_g: R.tea, starter_g: R.starter, scoby_g: R.Lb > 0 ? r5((R.scLo + R.scHi) / 2) : 0, base_days: KBD().f1.base_days_20 || 12 }); };
+  const start = () => { const R = kCalc(); openJar({ kind: 'kombucha', name: 'Kombucha ' + dIT(isoToday()), water_g: R.water, sugar_g: R.sugar, tea_g: R.tea, starter_g: R.starter, scoby_g: R.Lb > 0 ? r5((R.scLo + R.scHi) / 2) : 0 }); };
   $('#k-start').addEventListener('click', start);
   $('#k-new').addEventListener('click', start);
   jarActions($('#k-list'));
@@ -1071,7 +1462,7 @@ async function init() {
     DATA = d; JARS = j;
     RBY = new Map(DATA.recipes.map(r => [r.id, r]));
     const cnt = {}; DATA.recipes.forEach(r => { cnt[r.name] = (cnt[r.name] || 0) + 1; }); DUP = new Set(Object.keys(cnt).filter(n => cnt[n] > 1));
-    initJars(); initRecipes(); initAdapt(); initKombu();
+    initJars(); initRecipes(); initIngSearch(); initAdapt(); initKombu();
     renderJars(); renderMeteo();
     const v = location.hash.slice(1); if (onView[v]) onView[v]();
   } catch (err) {
