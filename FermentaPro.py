@@ -254,6 +254,9 @@ class FermentaProApp(tk.Tk):
         self.notebook.add(self.page_new, text="Nuova ricetta")
         self.notebook.add(self.page_book, text="Ricettario")
         self.notebook.add(self.page_db, text="Database")
+        self.page_guide = ttk.Frame(self.notebook, style="TFrame")
+        self.notebook.add(self.page_guide, text="Guida")
+        self.build_guide_ui(self.page_guide)
 
         # Costruzione pagine
         self.build_new_recipe_ui(self.page_new)
@@ -1339,6 +1342,22 @@ class FermentaProApp(tk.Tk):
         self.calculate()
 
     # ---------------- DB UI ----------------
+    def build_guide_ui(self, root):
+        """Mostra GUIDA.md (regole sale, tara, sicurezza, ricetta di riferimento)."""
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "GUIDA.md")
+        try:
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+        except Exception as e:
+            text = "Guida non trovata: %s" % e
+        box = tk.Text(root, wrap="word", font=("Segoe UI", 11), bg="#f2fbf4", relief="flat", padx=14, pady=10)
+        sb = ttk.Scrollbar(root, command=box.yview)
+        box.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        box.pack(fill="both", expand=True)
+        box.insert("1.0", text)
+        box.configure(state="disabled")
+
     def build_db_ui(self, root):
         card1 = ttk.Frame(root, style="Card.TFrame", padding=12)
         card1.pack(fill="x", padx=0, pady=(10,6))
