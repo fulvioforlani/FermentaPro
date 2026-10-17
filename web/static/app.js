@@ -1063,6 +1063,8 @@ const ING_SYN = {
   'rafano giapponese': 'Daikon', 'pepe': 'Pepe nero', 'pepe in grani': 'Pepe nero', 'origano': 'Origano (secco)', 'senape': 'Semi di senape',
   'pane nero': 'Pane di segale', 'segale': 'Pane di segale', 'rapa bianca': 'Rapa', 'pomodori verdi': 'Pomodoro verde', 'cavolini': 'Cavolini di Bruxelles'
 };
+/* ingredienti intercambiabili nella ricerca (verza e cappuccio si usano uguale nei crauti) */
+const ING_EQ = { 'Cavolo verza': 'Cavolo cappuccio' };
 const ING_STOP = new Set(['e', 'ed', 'di', 'con', 'il', 'la', 'le', 'i', 'gli', 'lo', 'un', 'una', 'g', 'gr', 'grammi', 'kg', 'ho', 'del', 'della', 'dei', 'delle', 'piu', 'poi']);
 const n2 = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const stemW = w => w.length > 3 ? w.replace(/(io|ie|ia|a|e|i|o)$/, '') : w;
@@ -1270,8 +1272,8 @@ function ingResults(rebuildGen) {
   if (!on) { $('#r-empty').hidden = !!$('#r-grid').children.length; return; }
   const scored = [];
   for (const r of DATA.recipes) {
-    const have = new Set(r.items.map(i => i.name));
-    const cov = sel.filter(n => have.has(n)).length;
+    const have = new Set(r.items.map(i => ING_EQ[i.name] || i.name));
+    const cov = sel.filter(n => have.has(ING_EQ[n] || n)).length;
     if (!cov) continue;
     const extra = r.items.filter(i => i.type === 'vegetable' && !sel.includes(i.name)).length;
     scored.push({ r, cov, extra });
