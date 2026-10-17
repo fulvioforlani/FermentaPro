@@ -51,7 +51,7 @@ function countTo(el, to, dec = 0) {
 }
 
 /* ---------- colori delle verdure ---------- */
-const VEG_C = { 'Cavolo cappuccio': '#c5e17a', 'Cavolo verza': '#93c95a', 'Cavolfiore': '#efe4c2', 'Carota': '#ff8a2b', 'Cetriolo': '#4fae4a', 'Zucchina': '#6cbf4f', 'Peperone': '#e5402f', 'Barbabietola': '#b0124f', 'Ravanello': '#ec4f86', 'Cipolla': '#e8cfa6', 'Aglio': '#f2ead6', 'Fagiolino': '#55b54a', 'Melanzana': '#6a2f7e', 'Finocchio': '#dcefb4', 'Porro': '#b4d886', 'Broccolo': '#3c8f3a', 'Pomodoro verde': '#9ccc48', 'Asparago': '#86b043', 'Sedano': '#a7d36b', 'Cavolo rapa': '#cfe6a6', 'Daikon': '#f1eee2', 'Pak choi': '#7cc960', 'Erba cipollina': '#559f3f', 'Cavolini di Bruxelles': '#76a83f', 'Mais (chicchi)': '#f5c632', 'Bietola costa': '#d23a4b', 'Erbette': '#6dbf5d', 'Spinaci': '#2f8a3c', 'Mela': '#eac45c', 'Olive': '#6b7a35', 'Pane di segale': '#8f5a2c', 'Ananas': '#f7d24a', 'Zenzero': '#e3b770', 'Rapa': '#dcb6e6', 'Sedano rapa': '#ecdcb0' };
+const VEG_C = { 'Cavolo cappuccio': '#c5e17a', 'Cavolo verza': '#93c95a', 'Cavolfiore': '#efe4c2', 'Carota': '#ff8a2b', 'Cetriolo': '#4fae4a', 'Zucchina': '#6cbf4f', 'Peperone': '#e5402f', 'Barbabietola': '#b0124f', 'Ravanello': '#ec4f86', 'Cipolla': '#e8cfa6', 'Aglio': '#f2ead6', 'Fagiolino': '#55b54a', 'Melanzana': '#6a2f7e', 'Finocchio': '#dcefb4', 'Porro': '#b4d886', 'Broccolo': '#3c8f3a', 'Pomodoro verde': '#9ccc48', 'Asparago': '#86b043', 'Sedano': '#a7d36b', 'Cavolo rapa': '#cfe6a6', 'Daikon': '#f1eee2', 'Pak choi': '#7cc960', 'Erba cipollina': '#559f3f', 'Cavolini di Bruxelles': '#76a83f', 'Mais (chicchi)': '#f5c632', 'Bietola costa': '#d23a4b', 'Erbette': '#6dbf5d', 'Spinaci': '#2f8a3c', 'Mela': '#eac45c', 'Olive': '#6b7a35', 'Pane di segale': '#8f5a2c', 'Ananas': '#f7d24a', 'Zenzero': '#e3b770', 'Rapa': '#dcb6e6', 'Sedano rapa': '#ecdcb0', 'Cavolo nero': '#3f5f3c', 'Cavolo rosso': '#7b3fa0', 'Navone': '#e6cfe0', 'Pastinaca': '#efe2bd', 'Pera': '#d8d070', 'Scalogno': '#c98f86' };
 const SP_C = { 'Pepe nero': '#2a2420', 'Pepe rosa': '#e0607e', 'Coriandolo': '#c9a46a', 'Semi di coriandolo': '#c9a46a', 'Cumino': '#8b6b3d', 'Semi di cumino': '#8b6b3d', 'Aneto': '#6f9a2a', 'Alloro': '#4f6b2a', 'Ginepro': '#3d3f6e', 'Peperoncino': '#e0302a', 'Peperoncino affumicato': '#9c2a1c', 'Zenzero': '#e3b770', 'Curcuma': '#f2a900', 'Semi di senape': '#d8b44a', 'Aglio secco': '#efe5cc', 'Origano (secco)': '#5d6b2f', 'Cannella': '#9a5a2a', 'Chiodi di garofano': '#4a2c1c', 'Basilico': '#3f9a3a', 'Limone': '#f5e04a', 'Zucchero': '#f5f2ea', 'Sale': '#f5f5f5', 'Pane di segale': '#8f5a2c' };
 const FALLBACK = ['#9ccc65', '#ffb74d', '#f06292', '#ba68c8', '#4db6ac', '#e57373'];
 const hashI = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
@@ -1054,87 +1054,8 @@ function openRecipe(id) {
 /* ======================================================
    RICERCA PER INGREDIENTI  (solo codice, istantanea, offline)
    ====================================================== */
-const ING_SYN = {
-  'cavolo': 'Cavolo cappuccio', 'cavolo bianco': 'Cavolo cappuccio', 'cappuccio': 'Cavolo cappuccio', 'crauti': 'Cavolo cappuccio',
-  'verza': 'Cavolo verza', 'rapa rossa': 'Barbabietola', 'bietola rossa': 'Barbabietola', 'barbabietola rossa': 'Barbabietola',
-  'cetriolino': 'Cetriolo', 'cornichon': 'Cetriolo', 'zucchino': 'Zucchina', 'cipollotto': 'Cipolla', 'scalogno': 'Cipolla',
-  'fagiolo verde': 'Fagiolino', 'cavolo cinese': 'Pak choi', 'bok choy': 'Pak choi', 'pakchoi': 'Pak choi', 'mais': 'Mais (chicchi)', 'granoturco': 'Mais (chicchi)',
-  'bietola': 'Bietola costa', 'biete': 'Bietola costa', 'coste': 'Bietola costa', 'celeriaco': 'Sedano rapa', 'sedano di verona': 'Sedano rapa',
-  'rafano giapponese': 'Daikon', 'pepe': 'Pepe nero', 'pepe in grani': 'Pepe nero', 'origano': 'Origano (secco)', 'senape': 'Semi di senape',
-  'pane nero': 'Pane di segale', 'segale': 'Pane di segale', 'rapa bianca': 'Rapa', 'pomodori verdi': 'Pomodoro verde', 'cavolini': 'Cavolini di Bruxelles'
-};
-/* ingredienti intercambiabili nella ricerca (verza e cappuccio si usano uguale nei crauti) */
-const ING_EQ = { 'Cavolo verza': 'Cavolo cappuccio' };
-const ING_STOP = new Set(['e', 'ed', 'di', 'con', 'il', 'la', 'le', 'i', 'gli', 'lo', 'un', 'una', 'g', 'gr', 'grammi', 'kg', 'ho', 'del', 'della', 'dei', 'delle', 'piu', 'poi']);
-const n2 = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-const stemW = w => w.length > 3 ? w.replace(/(io|ie|ia|a|e|i|o)$/, '') : w;
-const stemP = words => words.map(stemW).join(' ');
-function osa(a, b) {   // distanza di Damerau-Levenshtein (versione OSA)
-  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
-  for (let j = 0; j <= n; j++) d[0][j] = j;
-  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
-    const c = a[i - 1] === b[j - 1] ? 0 : 1;
-    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
-    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
-  }
-  return d[m][n];
-}
-let VOC = null;   // {list:[{name,type,color}], keys: Map(stemKey -> name)}
-function buildVoc() {
-  const vegNames = new Set(DATA.vegetables.map(v => v.name));
-  const names = new Map();
-  DATA.vegetables.forEach(v => names.set(v.name, 'vegetable'));
-  DATA.spices.forEach(s => { if (!names.has(s)) names.set(s, 'spice'); });
-  DATA.recipes.forEach(r => r.items.forEach(i => { if (!names.has(i.name)) names.set(i.name, vegNames.has(i.name) ? 'vegetable' : i.type); }));
-  const list = [...names].map(([name, type]) => ({ name, type, color: type === 'vegetable' ? vegColor(name) : spColor(name) }));
-  const keys = new Map();
-  const add = (k, name) => { if (k && !keys.has(k)) keys.set(k, name); };
-  for (const e of list) { const w = n2(e.name).split(' '); add(stemP(w), e.name); add(stemW(w.join('')), e.name); }
-  for (const [s, t] of Object.entries(ING_SYN)) if (names.has(t)) { const w = n2(s).split(' '); add(stemP(w), t); add(stemW(w.join('')), t); }
-  VOC = { list, keys, byName: new Map(list.map(e => [e.name, e])) };
-}
-const isNum = w => /^\d+([.,]\d+)?(g|gr|kg)?$/.test(w);
-function parseIng(text) {
-  const words = n2(text).split(' ').filter(Boolean), found = [], unknown = [];
-  let i = 0;
-  while (i < words.length) {
-    const w = words[i];
-    if (isNum(w)) {
-      const v = parseFloat(w.replace(',', '.')) * (/kg$/.test(w) || words[i + 1] === 'kg' ? 1000 : 1);
-      if (found.length && v > 0) found[found.length - 1].g = v;
-      i++; continue;
-    }
-    if (ING_STOP.has(w)) { i++; continue; }
-    let hit = null;
-    for (let L = Math.min(3, words.length - i); L >= 1 && !hit; L--) {
-      const span = words.slice(i, i + L);
-      if (span.some(x => isNum(x) || (L > 1 && ING_STOP.has(x) && x !== 'di'))) continue;
-      const k1 = stemP(span), k2 = stemW(span.join(''));
-      const name = VOC.keys.get(k1) || VOC.keys.get(k2);
-      if (name) hit = { name, L };
-    }
-    if (!hit) {   // inizio di un nome composto, solo se univoco ("cavolini" -> Cavolini di Bruxelles)
-      const st = stemW(w), cands = VOC.list.filter(e => stemW(n2(e.name).split(' ')[0]) === st);
-      if (cands.length === 1) hit = { name: cands[0].name, L: 1 };
-    }
-    if (hit) { if (!found.some(f => f.name === hit.name)) found.push({ name: hit.name }); i += hit.L; continue; }
-    unknown.push({ word: w, sugg: suggest(w) });
-    i++;
-  }
-  return { found, unknown };
-}
-function suggest(w) {
-  const st = stemW(w), thr = st.length <= 4 ? 1 : st.length <= 7 ? 2 : 3, best = new Map();
-  for (const [k, name] of VOC.keys) {
-    const parts = [k, ...k.split(' ')];
-    for (const p of parts) {
-      if (Math.abs(p.length - st.length) > thr) continue;
-      const d = osa(st, p);
-      if (d <= thr && (!best.has(name) || best.get(name) > d)) best.set(name, d);
-    }
-  }
-  return [...best].sort((a, b) => a[1] - b[1]).slice(0, 2).map(x => x[0]);
-}
+/* il motore (sinonimi, errori di battitura, gruppi di sostituzione, classifica) e' in ricerca.js */
+function buildVocApp() { buildVoc(DATA, (n, t) => t === 'vegetable' ? vegColor(n) : spColor(n)); }
 /* --- stato e UI --- */
 const IS = { items: [], live: [], unknown: [], lordo: '', tara: '', T: 20, method: null, saved: null };
 const selNames = () => { const s = []; for (const x of [...IS.items, ...IS.live]) if (!s.includes(x.name)) s.push(x.name); return s; };
@@ -1147,7 +1068,7 @@ function ingChips() {
   $('#ing-chips').innerHTML = IS.items.map(x => chip(x, false)).join('') + liveOnly.map(x => chip(x, true)).join('');
   $('#ing-hints').innerHTML = IS.unknown.map(u => u.sugg.length
     ? `<span class="ihint">“${esc(u.word)}”? Intendevi ${u.sugg.map(s => `<button type="button" data-sugg="${esc(s)}" data-w="${esc(u.word)}">${esc(s)}</button>`).join(' o ')}?</span>`
-    : `<span class="ihint ko">“${esc(u.word)}” non lo conosco</span>`).join('');
+    : `<span class="ihint ko">“${esc(u.word)}” non è nel ricettario: la ignoro</span>`).join('');
 }
 function ingAutocomplete() {
   const v = $('#ing-q').value, last = /\s$/.test(v) ? '' : n2(v).split(' ').pop() || '';
@@ -1180,7 +1101,7 @@ function ingCommit(extraName, dropWord) {
 }
 /* --- ricetta generata con le regole della guida --- */
 function genRecipe() {
-  const names = selNames(), vmap = new Map(DATA.vegetables.map(v => [v.name, v]));
+  const names = selNames(), vmap = { get: vegData, has: n => !!vegData(n) };
   const vegs = names.filter(n => vmap.has(n)), spices = names.filter(n => !vmap.has(n));
   if (!vegs.length) return null;
   const grams = n => num((IS.items.find(x => x.name === n) || IS.live.find(x => x.name === n) || {}).g) || 0;
@@ -1198,27 +1119,30 @@ function genRecipe() {
   const auto = sal > sec ? 'salamoia' : 'secco', method = IS.method || auto;
   const base = Math.max(...vegs.map(n => vmap.get(n).base_days_20c || 7)), T = IS.T, f = Math.pow(Q10, (T - 20) / 10);
   const ready = Math.max(3, Math.max(base, 3.5) / f), taste = Math.max(.55 * base, 2) / f;
-  const pct = method === 'secco' ? 2 : 3;
+  // sale dai dati delle verdure scelte: media pesata, nel range della guida (secco 1,5-2,5 %, salamoia 3-5 %)
+  const wPct = vegs.reduce((s, n) => s + (vmap.get(n).default_dry_pct || 2) * share(n), 0);
+  const pct = method === 'secco' ? Math.min(2.5, Math.max(1.5, Math.round(wPct * 2) / 2)) : Math.min(5, Math.max(3, Math.round(wPct * 2) / 2));
   const water = method === 'salamoia' ? Math.round(net * (1 / .7 - 1) / 10) * 10 : 0;
   const salt = method === 'secco' ? net * pct / 100 : water * pct / 100;
   const low = s => s.charAt(0).toLowerCase() + s.slice(1);
   const lst = vegs.map((n, i) => i ? low(n) : n);
   const name = (lst.length > 1 ? lst.slice(0, -1).join(', ') + ' e ' + lst[lst.length - 1] : lst[0]) + (method === 'secco' ? ' a secco' : ' in salamoia');
-  const sR = nf(salt, salt < 10 ? 1 : 0), dT = nf(taste, 0), dR = nf(ready, 0);
+  const sR = nf(salt, salt < 10 ? 1 : 0), dT = nf(taste, 0), dR = nf(ready, 0), pS = fp(pct);
   const steps = method === 'secco' ? [
     'Pela e taglia a fettine sottili o grattugia.',
     `Pesa le verdure al netto della tara: ${nf(net)} g.`,
-    `Aggiungi ${sR} g di sale (${pct} %) e massaggia finché fanno liquido.`,
+    `Aggiungi ${sR} g di sale (${pS} %) e massaggia finché fanno liquido.`,
     'Pressa nel vaso: liquido sopra le verdure, 2–3 cm liberi in cima.',
     `Fermenta a ${nf(T)} °C: assaggia dal giorno ${dT}, pronto verso il giorno ${dR}. Poi frigo.`
   ] : [
     'Lava le verdure; lasciale intere o a pezzi grossi.',
-    `Sciogli ${sR} g di sale in ${nf(water)} g d'acqua (${pct} %).`,
+    `Sciogli ${sR} g di sale in ${nf(water)} g d'acqua (${pS} %).`,
     `Metti nel vaso ${nf(net)} g di verdure${spices.length ? ' e le spezie' : ''} e copri con la salamoia.`,
     'Tienile sotto con un peso; lascia 2–3 cm liberi in cima.',
     `Fermenta a ${nf(T)} °C: assaggia dal giorno ${dT}, pronto verso il giorno ${dR}. Poi frigo.`
   ];
-  const why = auto === 'secco' ? 'A secco: verdure da tagliare fini o grattugiare.' : 'Salamoia: verdure intere o a pezzi grossi.';
+  const borrowed = vegs.filter(n => vmap.get(n).like).map(n => `${n}: tempi e sale come ${low(vmap.get(n).like)}.`).join(' ');
+  const why = (auto === 'secco' ? 'A secco: verdure da tagliare fini o grattugiare.' : 'Salamoia: verdure intere o a pezzi grossi.') + (borrowed ? ' ' + borrowed : '');
   return { vegs, spices, net, example, method, auto, why, base, T, ready, taste, pct, water, salt, name, steps, share, grams };
 }
 function genLook(G) {
@@ -1259,7 +1183,7 @@ function genUpdate() {
   const tile = (b, s, cls = '') => `<div class="stat ${cls}"><b>${b}</b><small>${s}</small></div>`;
   $('#gen-name').textContent = G.name;
   $('#gen-stats').innerHTML = tile(nf(G.net) + ' g', G.example ? 'verdure · esempio' : 'verdure nette')
-    + tile(nf(G.salt, G.salt < 10 ? 1 : 0) + ' g', `sale · ${G.pct} %`, 'ok')
+    + tile(nf(G.salt, G.salt < 10 ? 1 : 0) + ' g', `sale · ${fp(G.pct)} %`, 'ok')
     + (G.method === 'salamoia' ? tile(nf(G.water) + ' g', 'acqua') : '')
     + tile('~' + nf(G.taste, 0) + ' gg', 'assaggia') + tile('~' + nf(G.ready, 0) + ' gg', `pronto · base ${nf(G.base)} gg`);
   $('#gen-steps').innerHTML = G.steps.map(s => `<li>${esc(s)}</li>`).join('');
@@ -1270,34 +1194,31 @@ function ingResults(rebuildGen) {
   const sel = selNames(), on = sel.length > 0;
   $('#ing-res').hidden = !on; $('#r-hero').hidden = on; $('.filters').hidden = on; $('#r-grid').hidden = on; $('#r-empty').hidden = true;
   if (!on) { $('#r-empty').hidden = !!$('#r-grid').children.length; return; }
-  const scored = [];
-  for (const r of DATA.recipes) {
-    const have = new Set(r.items.map(i => ING_EQ[i.name] || i.name));
-    const cov = sel.filter(n => have.has(ING_EQ[n] || n)).length;
-    if (!cov) continue;
-    const extra = r.items.filter(i => i.type === 'vegetable' && !sel.includes(i.name)).length;
-    scored.push({ r, cov, extra });
-  }
-  scored.sort((a, b) => b.cov - a.cov || a.extra - b.extra || (b.r.rating || 0) - (a.r.rating || 0) || a.r.id - b.r.id);
-  const full = scored.filter(s => s.cov === sel.length), near = sel.length >= 2 ? scored.filter(s => s.cov === sel.length - 1) : [], rest = scored.filter(s => !full.includes(s) && !near.includes(s));
+  const R = rankRecipes(sel, DATA.recipes);
+  const full = R.exact, subsL = R.withSubs, near = R.near, rest = R.rest;
   const lordo = num(IS.lordo) || 0, gSum = IS.items.reduce((s, x) => s + (num(x.g) || 0), 0), net = lordo > 0 ? Math.max(0, lordo - (num(IS.tara) || 0)) : gSum;
   const card = s => {
-    let h = rCard(s.r).replace('<div class="rtop">', `<div class="rtop"><span class="cover ${s.cov === sel.length ? 'all' : ''}">copre ${s.cov}/${sel.length}</span>`);
-    if (net > 0) { const p = rPct(s.r), salt = s.r.method === 'secco' ? net * p / 100 : null; if (salt) h = h.replace('<div class="vdots">', `<div class="mysalt">con i tuoi ${nf(net)} g → <b>${nf(salt, salt < 10 ? 1 : 0)} g sale</b></div><div class="vdots">`); }
+    let h = rCard(s.r).replace('<div class="rtop">', `<div class="rtop"><span class="cover ${s.cov === sel.length ? (s.subs.length ? 'sub' : 'all') : ''}">copre ${s.cov}/${sel.length}</span>`);
+    let extra = '';
+    if (s.subs.length) extra += `<div class="subs">${s.subs.map(x => `<p>${icon('resize')}<span>con sostituzione: <b>${esc(x.use)}</b> al posto di ${esc(x.instead)}${[...x.diff, ...(x.cautela ? [x.cautela] : [])].length ? `<small>${esc([...x.diff, ...(x.cautela ? [x.cautela] : [])].join(' · '))}</small>` : ''}</span></p>`).join('')}</div>`;
+    if (net > 0) { const p = rPct(s.r), salt = s.r.method === 'secco' ? net * p / 100 : null; if (salt) extra += `<div class="mysalt">con i tuoi ${nf(net)} g → <b>${nf(salt, salt < 10 ? 1 : 0)} g sale</b></div>`; }
+    if (extra) h = h.replace('<div class="vdots">', extra + '<div class="vdots">');
     return h;
   };
   const head = (t, n) => `<h3 class="res-h">${t} <small>${n}</small></h3>`;
   const keepGen = !rebuildGen && $('#gen');
   let html = '';
-  if (!full.length) html += `<div id="gen-slot"></div>`;
+  const anyFull = full.length + subsL.length > 0;
+  if (!anyFull) html += `<div id="gen-slot"></div>`;
   if (full.length) html += head(full.length === 1 ? 'Ha tutto' : 'Hanno tutto', full.length) + `<div class="grid">${full.map(card).join('')}</div>`;
+  if (subsL.length) html += head('Con sostituzione', subsL.length) + `<div class="grid">${subsL.map(card).join('')}</div>`;
   if (near.length) html += head('Quasi', near.length) + `<div class="grid">${near.map(card).join('')}</div>`;
   if (rest.length) html += `<details class="others"><summary>Altre <b>${rest.length}</b></summary><div class="grid">${rest.map(card).join('')}</div></details>`;
-  if (full.length) html += `<div class="gen-offer"><button class="btn ghost" type="button" id="gen-open">${icon('leaf')}Oppure creane una su misura</button></div><div id="gen-slot"></div>`;
+  if (anyFull) html += `<div class="gen-offer"><button class="btn ghost" type="button" id="gen-open">${icon('leaf')}Oppure creane una su misura</button></div><div id="gen-slot"></div>`;
   const oldGen = keepGen ? $('#gen') : null;
   $('#ing-res').innerHTML = html;
   const slot = $('#gen-slot');
-  if (slot && (!full.length || IS.genOpen)) {
+  if (slot && (!anyFull || IS.genOpen)) {
     if (oldGen) slot.replaceWith(oldGen); else { slot.outerHTML = genCard(); settle($('#gen') || document); }
     genUpdate();
   }
@@ -1313,13 +1234,13 @@ async function genSave() {
   };
   const r = await api('/api/recipes', { method: 'POST', body });
   IS.saved = r.id; IS.genOpen = false;
-  await refreshAll(); buildVoc();
+  await refreshAll(); buildVocApp();
   toast('Salvata nel ricettario');
   ingResults(true);
   const c = $(`#ing-res .rcard[data-id="${r.id}"]`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('flash'); }
 }
 function initIngSearch() {
-  buildVoc();
+  buildVocApp();
   const q = $('#ing-q');
   q.addEventListener('input', ingParseLive);
   q.addEventListener('keydown', e => {
