@@ -319,8 +319,8 @@ function initCalc() {
    2. I MIEI VASI  (segnalatore "pronto" calcolato dal server)
    ====================================================== */
 const LV = { presto: ['Troppo presto', 'presto', 'jar'], assaggia: ['Si può assaggiare', 'assaggia', 'spoon'], pronto: ['Pronto', 'pronto', 'check'] };
-const SRC = { arpa: 'ARPA', 'arpa-rt': 'ARPA oggi', 'open-meteo': 'previsione', misurata: 'misurata', casa: 'casa', fissa: 'fissa', stima: 'stima' };
-const SRC_C = { arpa: '#5ab8ff', 'arpa-rt': '#5ab8ff', 'open-meteo': '#ba68c8', misurata: '#f5b544', casa: '#8be36b', fissa: '#8be36b', stima: '#93a398' };
+const SRC = { arpa: 'ARPA', 'arpa-rt': 'ARPA oggi', 'open-meteo': 'previsione', misurata: 'misurata', casa: 'casa', fissa: 'fissa', stima: 'stima', sensore: 'sensore', 'sensore-sim': 'simulato', 'sensore-prev': 'sensore 24h' };
+const SRC_C = { arpa: '#5ab8ff', 'arpa-rt': '#5ab8ff', 'open-meteo': '#ba68c8', misurata: '#f5b544', casa: '#8be36b', fissa: '#8be36b', stima: '#93a398', sensore: '#2ee6c8', 'sensore-sim': '#9aa7ff', 'sensore-prev': '#2ee6c8' };
 const isKombu = j => (j.kind || 'verdure') === 'kombucha';
 const lastEv = (j, t) => (j.events || []).filter(e => e.type === t).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).pop();
 const phSafe = j => isKombu(j) ? 4.2 : 4.6;
@@ -475,7 +475,7 @@ function initJars() {
     card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
   });
   jarActions($('#v-vasi'));
-  onView.vasi = () => { renderJars(); renderMeteo(); };
+  onView.vasi = () => { renderJars(); renderMeteo(); loadSensor(); };
 }
 
 /* ---------- dettaglio: grafico, temperature, misure ---------- */
@@ -532,13 +532,14 @@ function openDetail(id) {
         <p class="how" style="margin:14px 0 16px">${icon('info')}<span>Stima: ${nf(r.base, r.base % 1 ? 1 : 0)} giorni a 20 °C, corretti giorno per giorno con la temperatura (Q10 2,2): assaggio al 55 %, pronto al 100 %, mai prima di 3 giorni. <b>È una stima: decidono assaggio e odore.</b></span></p>
         <h4>Tempo equivalente a 20 °C · ${nf(r.e, 1)} di ${nf(r.ready_at, 1)} gg</h4>
         <div class="chart">${chartSVG(r)}</div>
-        <div class="legend"><span><i style="background:#8be36b"></i>accumulato</span><span><i style="background:#c9d4cb;opacity:.6"></i>previsto</span>${Object.entries({ ARPA: '#5ab8ff', casa: '#8be36b', misurata: '#f5b544', previsione: '#ba68c8' }).map(([k, c]) => `<span><i style="background:${c};border-radius:50%"></i>${k}</span>`).join('')}</div>
+        <div class="legend"><span><i style="background:#8be36b"></i>accumulato</span><span><i style="background:#c9d4cb;opacity:.6"></i>previsto</span>${Object.entries({ sensore: '#2ee6c8', ARPA: '#5ab8ff', casa: '#8be36b', misurata: '#f5b544', previsione: '#ba68c8' }).map(([k, c]) => `<span><i style="background:${c};border-radius:50%"></i>${k}</span>`).join('')}</div>
+        <div class="box" id="dd-real" style="margin-top:14px"></div>
       </div>
       <div>
         ${j.base_info ? `<div class="box">${baseEditor('jar:' + j.id, j.base_info.eff, j.base_info.default, j.base_info.mode === 'tuo', j.base_info.src === 'ricetta' ? 'dalla ricetta' : j.base_info.src === 'kombucha' ? 'dal kombucha' : 'generico')}</div>` : ''}
         <div class="box"><h4>Temperatura usata</h4>
           <div class="days7">${last7.map(p => `<div title="${SRC[p.src] || p.src}"><span>${p.d.slice(8, 10)}-${p.d.slice(5, 7)}</span><b>${nf(p.t, p.t % 1 ? 1 : 0)}°</b><i style="background:${SRC_C[p.src] || '#93a398'}"></i></div>`).join('') || '<span class="hint">—</span>'}</div>
-          <p class="hint">${j.temp_mode === 'fissa' ? 'Fissa: sempre la tua temperatura.' : 'Auto: estate (giu–set) media del giorno ARPA Torino Alenia; inverno la tua temperatura di casa.'} Una tua misura vale 7 giorni.</p></div>
+          <p class="hint">${j.temp_mode === 'fissa' ? 'Fissa: sempre la tua temperatura.' : 'Auto: estate (giu–set) media del giorno ARPA Torino Alenia; inverno la tua temperatura di casa.'} Ordine: tua misura (vale 7 gg) › sensore › ARPA › casa.</p></div>
         ${j.status === 'attivo' ? `<div class="box"><h4>Misura a mano</h4><div class="mrow"><span class="inp"><input id="dd-t" type="number" inputmode="decimal" step="0.5" min="-10" max="45" placeholder="${nf(r.temp_now?.t ?? 20, 0)}"><i>°C</i></span><input type="date" id="dd-td" value="${isoToday()}" aria-label="Data misura"><button class="btn ghost" type="button" data-ev="temp">${icon('check')}Salva</button></div></div>` : ''}
         <div class="box"><h4>pH · facoltativo</h4><div class="mrow"><span class="inp"><input id="dd-p" type="number" inputmode="decimal" step="0.1" min="1" max="9" placeholder="${kb ? '3,0' : '4,0'}"><i>pH</i></span><button class="btn ghost" type="button" data-ev="ph">${icon('check')}Salva</button></div>
           <p class="hint">${kb ? 'Obiettivo 2,5–3,5 · sicuro sotto 4,2.' : 'Striscia pH: 4,6 o meno · meglio 4,2–3,8.'}</p></div>
@@ -547,6 +548,7 @@ function openDetail(id) {
       </div>
     </div></div>`;
   const d = $('#dlg-d'); if (!d.open) d.showModal(); settle(d);
+  fillRealChart(j);
 }
 function initDetail() {
   const d = $('#dlg-d');
@@ -738,6 +740,182 @@ function initJarForm() {
       setTimeout(() => { const c = $(`#v-${target} .jcard[data-id="${saved.id}"]`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('flash'); } }, 350);
     } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
   });
+}
+
+/* ======================================================
+   SENSORE  (es. Raspberry Pi + DS18B20, anche letture simulate)
+   ====================================================== */
+let SENS = null, SRANGE = 'h24';
+const hhmm = ts => ts ? ts.slice(11, 16) : '';
+const ago = m => m == null ? '' : m < 60 ? `${m} min fa` : m < 1440 ? `${Math.round(m / 60)} h fa` : `${Math.round(m / 1440)} gg fa`;
+function sensState(s = SENS) {
+  if (!s || !s.last) return { k: 'off', t: 'Sensore non collegato' };
+  const real = s.last_real, rm = s.last_real_min;
+  if (real && rm <= 180) return { k: 'on', t: `Sensore attivo · ${hhmm(real.ts)}` };
+  if (real) return { k: 'mute', t: `Nessuna lettura da ${ago(rm).replace(' fa', '')}` };
+  return { k: 'sim', t: `Solo letture simulate · ${hhmm(s.last.ts)}` };
+}
+async function loadSensor() { try { SENS = await api('/api/sensor'); } catch (e) { SENS = null; } renderSensorStrip(); }
+function renderSensorStrip() {
+  const el = $('#j-sensor'); if (!el) return;
+  const st = sensState(), l = SENS && SENS.last;
+  el.className = 'sens-strip ' + st.k;
+  el.innerHTML = `<span class="sdot"></span><span class="stxt"><b>${st.t}</b>${l && l.temp != null ? `<small>${nf(l.temp, 1)} °C${l.hum != null ? ` · ${nf(l.hum, 0)} %` : ''}${l.source === 'simulato' ? ' · simulato' : ''}</small>` : '<small>tocca per collegare il sensore</small>'}</span>${icon('arrow')}`;
+}
+function sensChart(points, hours) {
+  const W = 560, H = 210, L = 36, R = 12, T = 12, B = 26;
+  const now = Date.now(), t0 = now - hours * 3600e3;
+  const pts = points.filter(p => p.t != null).map(p => ({ x: new Date(p.h + ':30:00').getTime(), t: p.t, rh: p.rh, sim: !!p.allsim }));
+  if (!pts.length) return `<div class="chart-empty">${icon('chart')}Nessuna lettura in questo periodo</div>`;
+  const lo = Math.floor(Math.min(...pts.map(p => p.t)) - .5), hi = Math.ceil(Math.max(...pts.map(p => p.t)) + .5);
+  const X = x => L + (x - t0) / (now - t0) * (W - L - R), Y = t => T + (hi - t) / (hi - lo || 1) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Temperatura del sensore">`;
+  for (let v = lo; v <= hi; v += Math.max(1, Math.round((hi - lo) / 4))) s += `<path d="M${L} ${Y(v).toFixed(1)}H${W - R}" stroke="rgba(255,255,255,.07)"/><text x="${L - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" font-size="10.5" fill="#6f8075" font-family="Bahnschrift,Segoe UI,sans-serif">${v}°</text>`;
+  const segs = []; let cur = null;
+  for (const p of pts) {
+    if (!cur || p.sim !== cur.sim || p.x - cur.pts[cur.pts.length - 1].x > 2.5 * 3600e3) { cur = { sim: p.sim, pts: [] }; segs.push(cur); }
+    cur.pts.push(p);
+  }
+  for (const g of segs) {
+    const d = g.pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)} ${Y(p.t).toFixed(1)}`).join('');
+    const col = g.sim ? '#9aa7ff' : '#2ee6c8';
+    if (g.pts.length > 1) s += `<path d="${d}L${X(g.pts[g.pts.length - 1].x).toFixed(1)} ${H - B}L${X(g.pts[0].x).toFixed(1)} ${H - B}Z" fill="${col}" opacity=".08"/>`;
+    s += `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"${g.sim ? ' stroke-dasharray="6 4"' : ''}/>`;
+    if (g.pts.length === 1) s += `<circle cx="${X(g.pts[0].x).toFixed(1)}" cy="${Y(g.pts[0].t).toFixed(1)}" r="3.5" fill="${col}"/>`;
+  }
+  const lp = pts[pts.length - 1];
+  s += `<circle cx="${X(lp.x).toFixed(1)}" cy="${Y(lp.t).toFixed(1)}" r="5" fill="#f4f8f1" stroke="#0e1511" stroke-width="2"/>`;
+  const step = hours <= 24 ? 6 : 24;
+  for (let k = 0; k <= hours; k += step) {
+    const x = now - (hours - k) * 3600e3, d = new Date(x);
+    const lab = hours <= 24 ? `${pad(d.getHours())}:00` : `${pad(d.getDate())}-${pad(d.getMonth() + 1)}`;
+    s += `<text x="${X(x).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="#93a398" font-family="Bahnschrift,Segoe UI,sans-serif">${k === hours ? 'ora' : lab}</text>`;
+  }
+  return s + '</svg>';
+}
+function sensorBase() {
+  const ip = (SENS && SENS.lan_ip) || location.hostname, port = (SENS && SENS.port) || 8954;
+  return `http://${ip}:${port}/api/temp`;
+}
+function renderSensorSheet() {
+  const s = SENS || {}, l = s.last, st = sensState(s), nsim = (s.counts && s.counts.simulato) || 0;
+  const pts = SRANGE === 'h24' ? (s.h24 || []) : (s.d7 || []);
+  const ip = s.lan_ip || location.hostname;
+  $('#ds-body').innerHTML = `
+    <div class="sheet-top"><h2 id="ds-title">Sensore</h2><button class="icon-btn" type="button" data-close aria-label="Chiudi">${icon('x')}</button></div>
+    <div class="sheet-scroll"><div class="sens">
+      <div>
+        <div class="sens-now ${st.k}">
+          <div class="sbig">${l && l.temp != null ? nf(l.temp, 1) : '—'}<i>°C</i></div>
+          <div class="sside"><b>${l && l.hum != null ? nf(l.hum, 0) + ' %' : '— %'}</b><small>umidità</small></div>
+          <div class="sbadge"><span class="sdot"></span>${st.t}${l ? `<small>${l.source === 'simulato' ? 'simulata · ' : ''}${dIT(l.ts)} ${hhmm(l.ts)} · ${ago(s.last_min)}</small>` : ''}</div>
+        </div>
+        ${st.k === 'mute' ? `<p class="warn">Nessuna lettura reale da più di 3 ore: controlla il Raspberry e la rete.</p>` : ''}
+        <div class="seg small${SRANGE === 'd7' ? ' right' : ''}" id="s-range" role="radiogroup" aria-label="Periodo" style="max-width:320px;margin:16px 0 12px">
+          <button type="button" role="radio" data-m="h24" aria-checked="${SRANGE === 'h24'}"><b>24 ore</b></button>
+          <button type="button" role="radio" data-m="d7" aria-checked="${SRANGE === 'd7'}"><b>7 giorni</b></button>
+        </div>
+        <div class="chart">${sensChart(pts, SRANGE === 'h24' ? 24 : 168)}</div>
+        <div class="legend"><span><i style="background:#2ee6c8"></i>sensore</span><span><i style="background:#9aa7ff"></i>simulato</span><span>media oraria</span></div>
+      </div>
+      <div>
+        <div class="box"><h4>Prova senza sensore</h4>
+          <div class="mrow"><span class="inp"><input id="s-t" type="number" inputmode="decimal" step="0.1" min="-10" max="50" value="21"><i>°C</i></span><span class="inp"><input id="s-h" type="number" inputmode="decimal" step="1" min="0" max="100" value="55"><i>%</i></span><button class="btn ghost" type="button" data-s="one">${icon('plus')}Simula lettura</button></div>
+          <div class="mrow" style="margin-top:8px"><button class="btn ghost" type="button" data-s="gen">${icon('chart')}Genera 7 giorni</button><button class="btn danger" type="button" data-s="del"${nsim ? '' : ' disabled'}>${icon('trash')}Cancella simulate (${nsim})</button></div>
+          <label class="toggle" style="margin-top:12px"><input type="checkbox" id="s-use"${s.use_simulated ? ' checked' : ''}><span></span>Usa anche le simulate nei calcoli</label>
+          <p class="hint">${s.use_simulated ? '<b style="color:var(--amber)">Attenzione: i vasi ora usano anche letture finte.</b>' : 'Spento: i vasi usano solo letture reali.'}</p>
+        </div>
+        <div class="box howto"><h4>Come collegare il sensore</h4>
+          <ol>
+            <li>Il Raspberry chiama <code id="s-url">${esc(sensorBase())}?t=21.4</code> <button class="btn ghost mini" type="button" data-s="copy">Copia</button> · facoltativi <code>&h=55</code> <code>&ts=2026-10-17T13:00</code> <code>&src=nome</code></li>
+            <li>Letture arretrate (PC spento): POST JSON <code>{"readings":[{"t":21.4,"ts":"…"}]}</code> allo stesso URL.</li>
+            <li>Fissa nel router l'IP del PC <b>${esc(ip)}</b> e apri la porta ${s.port || 8954} nel firewall di Windows.</li>
+          </ol></div>
+        <div class="box"><h4>Token · facoltativo</h4><div class="mrow"><span class="inp"><input id="s-tok" type="text" maxlength="40" placeholder="${s.token_set ? 'impostato' : 'nessuno'}" autocomplete="off"><i>token</i></span><button class="btn ghost" type="button" data-s="tok">${icon('check')}Salva</button></div>
+          <p class="hint">Se lo imposti, aggiungi <code>&token=…</code> all'URL. Vuoto = chiunque in casa può inviare.</p></div>
+      </div>
+    </div></div>`;
+}
+async function openSensor() { await loadSensor(); renderSensorSheet(); const d = $('#dlg-s'); if (!d.open) d.showModal(); }
+async function sensorChanged(msg) {
+  await loadSensor(); if ($('#dlg-s').open) renderSensorSheet();
+  try { await loadJars(); renderJars(); } catch (e) { /* niente */ }
+  if (msg) toast(msg);
+}
+function initSensor() {
+  $('#j-sensor').addEventListener('click', openSensor);
+  const d = $('#dlg-s');
+  d.addEventListener('click', async e => {
+    const r = e.target.closest('#s-range button'); if (r) { SRANGE = r.dataset.m; renderSensorSheet(); return; }
+    const b = e.target.closest('[data-s]'); if (!b) return;
+    try {
+      if (b.dataset.s === 'one') {
+        const t = num($('#s-t').value), h = num($('#s-h').value);
+        if (!(t >= -10 && t <= 50)) { toast('Temperatura da -10 a 50 °C', true); return; }
+        await api(`/api/temp?t=${t}${isFinite(h) ? `&h=${h}` : ''}&src=simulato`, { method: 'POST' });
+        await sensorChanged(SENS && SENS.use_simulated ? 'Lettura simulata salvata' : 'Lettura simulata salvata (non usata nei calcoli)');
+      } else if (b.dataset.s === 'gen') {
+        b.disabled = true; const r2 = await api('/api/sensor/simulate', { method: 'POST', body: { days: 7 } });
+        await sensorChanged(`${r2.letture} letture simulate create`);
+      } else if (b.dataset.s === 'del') {
+        if (!b.classList.contains('armed')) { b.classList.add('armed'); b.innerHTML = `${icon('trash')}Sicuro? Tocca ancora`; return; }
+        const r3 = await api('/api/sensor/simulated', { method: 'DELETE' }); await sensorChanged(`${r3.cancellate} letture simulate cancellate`);
+      } else if (b.dataset.s === 'copy') {
+        const txt = sensorBase() + '?t=21.4';
+        try { await navigator.clipboard.writeText(txt); } catch (err) { const a = document.createElement('textarea'); a.value = txt; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+        toast('URL copiato');
+      } else if (b.dataset.s === 'tok') {
+        SENS = { ...SENS, ...(await api('/api/sensor/settings', { method: 'POST', body: { token: $('#s-tok').value.trim() } })) };
+        renderSensorSheet(); toast($('#s-tok') && SENS.token_set ? 'Token salvato' : 'Token tolto');
+      }
+    } catch (err) { toast(err.message, true); b.disabled = false; }
+  });
+  d.addEventListener('change', async e => {
+    if (e.target.id !== 's-use') return;
+    try { await api('/api/sensor/settings', { method: 'POST', body: { use_simulated: e.target.checked } }); await sensorChanged(e.target.checked ? 'Simulate usate nei calcoli' : 'Calcoli solo con letture reali'); }
+    catch (err) { toast(err.message, true); }
+  });
+  setInterval(() => { if (document.visibilityState === 'visible') loadSensor(); }, 60000);
+}
+/* grafico temperatura reale nel dettaglio vaso */
+async function fillRealChart(j) {
+  const box = $('#dd-real'); if (!box) return;
+  const r = j.ready || {}, start = new Date((r.cycle_start || j.start_date) + 'T00:00:00');
+  const from = new Date(Math.max(start.getTime(), Date.now() - 7 * 864e5));
+  try {
+    const pts = await api('/api/sensor/series?from=' + isoOf(from) + 'T' + pad(from.getHours()) + ':00:00');
+    const st = sensState();
+    box.innerHTML = `<div class="real-head"><h4>Temperatura reale · sensore</h4><span class="sbadge mini ${st.k}"><span class="sdot"></span>${st.t}</span></div>
+      ${st.k === 'mute' ? '<p class="warn" style="margin:0 0 8px">Nessuna lettura da più di 3 ore.</p>' : ''}
+      <div class="chart">${realChart(pts, r, from)}</div>
+      <div class="legend"><span><i style="background:#2ee6c8"></i>temperatura (media oraria)</span><span><i style="background:#8be36b"></i>giorni a 20 °C accumulati</span></div>`;
+  } catch (e) { box.innerHTML = ''; }
+}
+function realChart(pts, r, from) {
+  pts = pts.filter(p => p.t != null);
+  if (!pts.length) return `<div class="chart-empty">${icon('thermo')}Nessuna lettura del sensore per questo vaso${SENS && !SENS.use_simulated && SENS.counts && SENS.counts.simulato ? ' (le simulate sono escluse dai calcoli)' : ''}</div>`;
+  const W = 560, H = 200, L = 34, R = 34, T = 12, B = 24, t0 = from.getTime(), t1 = Date.now();
+  const lo = Math.floor(Math.min(...pts.map(p => p.t)) - .5), hi = Math.ceil(Math.max(...pts.map(p => p.t)) + .5);
+  const X = x => L + (x - t0) / (t1 - t0 || 1) * (W - L - R), Y = t => T + (hi - t) / (hi - lo || 1) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Temperatura reale e tempo equivalente">`;
+  for (let v = lo; v <= hi; v += Math.max(1, Math.round((hi - lo) / 4))) s += `<path d="M${L} ${Y(v).toFixed(1)}H${W - R}" stroke="rgba(255,255,255,.07)"/><text x="${L - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="#6f8075" font-family="Bahnschrift,Segoe UI,sans-serif">${v}°</text>`;
+  const P = pts.map(p => ({ x: new Date(p.h + ':30:00').getTime(), t: p.t, sim: !!p.allsim })).filter(p => p.x >= t0);
+  let d = '', prev = null;
+  for (const p of P) { d += `${!prev || p.x - prev.x > 2.5 * 3600e3 ? 'M' : 'L'}${X(p.x).toFixed(1)} ${Y(p.t).toFixed(1)}`; prev = p; }
+  s += `<path d="${d}" fill="none" stroke="#2ee6c8" stroke-width="2.2" stroke-linejoin="round"/>`;
+  const ser = (r.series || []).map(q => ({ x: new Date(q.d + 'T00:00:00').getTime() + (q.oggi ? (Date.now() - new Date(q.d + 'T00:00:00').getTime()) : 864e5), e: q.e })).filter(q => q.x >= t0);
+  if (ser.length) {
+    const emax = Math.max(r.ready_at * 1.2, ...ser.map(q => q.e)), YE = e => T + (1 - e / emax) * (H - T - B);
+    s += `<path d="M${L} ${YE(r.ready_at).toFixed(1)}H${W - R}" stroke="#8be36b" stroke-opacity=".5" stroke-dasharray="5 4"/><text x="${W - R + 4}" y="${(YE(r.ready_at) + 4).toFixed(1)}" font-size="10" fill="#8be36b" font-family="Bahnschrift,Segoe UI,sans-serif">${nf(r.ready_at, 1)}</text>`;
+    s += `<path d="${ser.map((q, i) => `${i ? 'L' : 'M'}${X(Math.min(q.x, t1)).toFixed(1)} ${YE(q.e).toFixed(1)}`).join('')}" fill="none" stroke="#8be36b" stroke-width="2.4" stroke-linecap="round"/>`;
+    s += `<text x="${W - R + 4}" y="${T + 8}" font-size="10" fill="#8be36b" font-family="Bahnschrift,Segoe UI,sans-serif">gg</text>`;
+  }
+  const days = Math.ceil((t1 - t0) / 864e5), step = days <= 2 ? .25 : 1;
+  for (let k = 0; k <= days; k += step) {
+    const x = t0 + k * 864e5; if (x > t1) break; const dt = new Date(x);
+    s += `<text x="${X(x).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="#93a398" font-family="Bahnschrift,Segoe UI,sans-serif">${step < 1 ? pad(dt.getHours()) + ':00' : pad(dt.getDate()) + '-' + pad(dt.getMonth() + 1)}</text>`;
+  }
+  return s + '</svg>';
 }
 
 /* ======================================================
@@ -1455,7 +1633,7 @@ function initDialogs() {
 async function init() {
   floaters();
   $('#today').textContent = dIT(isoToday());
-  initDialogs(); initCalc(); initJarForm(); initDetail(); renderGuide();
+  initDialogs(); initCalc(); initJarForm(); initDetail(); initSensor(); renderGuide();
   go(location.hash.slice(1) || 'sale');
   try {
     const [d, j] = await Promise.all([api('/api/data'), api('/api/jars')]);
@@ -1463,7 +1641,7 @@ async function init() {
     RBY = new Map(DATA.recipes.map(r => [r.id, r]));
     const cnt = {}; DATA.recipes.forEach(r => { cnt[r.name] = (cnt[r.name] || 0) + 1; }); DUP = new Set(Object.keys(cnt).filter(n => cnt[n] > 1));
     initJars(); initRecipes(); initIngSearch(); initAdapt(); initKombu();
-    renderJars(); renderMeteo();
+    renderJars(); renderMeteo(); loadSensor();
     const v = location.hash.slice(1); if (onView[v]) onView[v]();
   } catch (err) {
     console.error(err); toast('Server non raggiungibile: il calcolatore funziona comunque', true);

@@ -16,7 +16,9 @@ Tempo equivalente a 20 C: somma giorno per giorno di Q10^((T-20)/10), Q10 = 2.2
 """
 import datetime
 import json
+import math
 import os
+import random
 import re
 import shutil
 import sqlite3
@@ -25,6 +27,7 @@ import time
 import urllib.request
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 try:
     from zoneinfo import ZoneInfo
@@ -123,6 +126,11 @@ def init_db():
             type TEXT NOT NULL, value REAL, value2 REAL, note TEXT DEFAULT '', created_at TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS weather_days (
             date TEXT PRIMARY KEY, tmean REAL NOT NULL, source TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS readings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, temp REAL, hum REAL,
+            source TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        c.execute("CREATE INDEX IF NOT EXISTS readings_ts ON readings(ts)")
+        c.execute("""CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS base_overrides (
             key TEXT PRIMARY KEY, days REAL NOT NULL, updated_at TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS drinks (
@@ -210,6 +218,164 @@ def weather_loop():
         time.sleep(REFRESH_EVERY)
 
 
+# ------------------------------------------------------------------ sensore (es. Raspberry Pi + DS18B20)
+# GET/POST /api/temp?t=21.4[&h=55][&ts=2026-10-17T13:00:00][&src=nome]
+# POST JSON: {"t":21.4,"h":55,"ts":"..."}  oppure batch {"readings":[{...},{...}]} oppure [{...},{...}]
+T_KEYS = ("t", "temp", "temperature", "tC", "tc", "temp_c")
+H_KEYS = ("h", "hum", "humidity", "rh")
+TS_KEYS = ("ts", "time", "timestamp", "date")
+MERGE_SECONDS = 20          # due invii ravvicinati senza orario si uniscono (anti-spam)
+MAX_BATCH = 5000
+
+
+def get_setting(c, key, default=""):
+    r = c.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+    return r[0] if r else default
+
+
+def set_setting(c, key, value):
+    c.execute("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, str(value)))
+
+
+def sensor_token(c):
+    return (os.environ.get("SENSOR_TOKEN") or get_setting(c, "sensor_token", "")).strip()
+
+
+def use_sim(c):
+    return get_setting(c, "use_simulated", "0") == "1"
+
+
+def _num(v):
+    try:
+        x = float(str(v).strip().replace(",", "."))
+        return x if math.isfinite(x) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _ts(v):
+    """Orario della lettura: ISO locale (con o senza fuso) oppure secondi Unix. None = adesso."""
+    if v in (None, ""):
+        return None
+    now = now_local().replace(tzinfo=None)
+    x = _num(v)
+    if x is not None and x > 1e9:
+        d = datetime.datetime.fromtimestamp(x, TZ).replace(tzinfo=None) if TZ else datetime.datetime.fromtimestamp(x)
+    else:
+        try:
+            d = datetime.datetime.fromisoformat(str(v).strip().replace("Z", "+00:00"))
+        except ValueError:
+            raise ValueError("orario non valido (usa ISO 2026-10-17T13:00:00 o secondi Unix)")
+        if d.tzinfo is not None:
+            d = d.astimezone(TZ).replace(tzinfo=None) if TZ else d.replace(tzinfo=None)
+    if d > now + datetime.timedelta(minutes=10):
+        raise ValueError("orario nel futuro")
+    if d < now - datetime.timedelta(days=60):
+        raise ValueError("lettura piu' vecchia di 60 giorni")
+    return d.replace(microsecond=0).isoformat(timespec="seconds")
+
+
+def clean_src(v, default="sensore"):
+    v = re.sub(r"[^a-z0-9_-]", "", str(v or "").lower())[:30]
+    return v or default
+
+
+def extract_reading(flat):
+    t = next((_num(flat[k]) for k in T_KEYS if k in flat and _num(flat[k]) is not None), None)
+    h = next((_num(flat[k]) for k in H_KEYS if k in flat and _num(flat[k]) is not None), None)
+    ts = _ts(next((flat[k] for k in TS_KEYS if flat.get(k) not in (None, "")), None))
+    src = clean_src(flat.get("src") or flat.get("source") or flat.get("sensor"))
+    return t, h, ts, src
+
+
+def save_reading(c, t, h, src, ts=None, merge=True):
+    if t is not None and not -10 <= t <= 50:
+        raise ValueError("temperatura fuori scala (-10..50 C)")
+    if h is not None and not 0 <= h <= 100:
+        raise ValueError("umidita' fuori scala (0..100 %)")
+    if t is None and h is None:
+        raise ValueError("serve tC/t/temp oppure rh/h/hum")
+    now = now_local().replace(tzinfo=None)
+    given = ts is not None
+    ts = ts or now.isoformat(timespec="seconds")
+    if given:
+        dup = c.execute("SELECT id FROM readings WHERE source=? AND ts=?", (src, ts)).fetchone()
+        if dup:
+            return dup["id"], "gia' presente"
+    last = None if (given or not merge) else c.execute("SELECT id, ts FROM readings WHERE source=? ORDER BY ts DESC, id DESC LIMIT 1", (src,)).fetchone()
+    if last and ts >= last["ts"] and (datetime.datetime.fromisoformat(ts) - datetime.datetime.fromisoformat(last["ts"])).total_seconds() < MERGE_SECONDS:
+        sets, vals = [], []
+        if t is not None:
+            sets.append("temp=?"); vals.append(round(t, 2))
+        if h is not None:
+            sets.append("hum=?"); vals.append(round(h, 1))
+        c.execute(f"UPDATE readings SET {', '.join(sets)}, ts=? WHERE id=?", (*vals, ts, last["id"]))
+        return last["id"], "unita alla lettura precedente"
+    cur = c.execute("INSERT INTO readings (ts, temp, hum, source, created_at) VALUES (?,?,?,?,?)",
+                    (ts, round(t, 2) if t is not None else None, round(h, 1) if h is not None else None, src,
+                     now.isoformat(timespec="seconds")))
+    return cur.lastrowid, "salvata"
+
+
+def hourly(c, since_iso, include_sim):
+    flt = "" if include_sim else " AND source != 'simulato'"
+    q = f"""SELECT substr(ts,1,13) h, avg(temp) t, avg(hum) rh, max(source='simulato') sim, min(source='simulato') allsim, count(*) n
+            FROM readings WHERE ts >= ?{flt} GROUP BY h ORDER BY h"""
+    return [dict(r) for r in c.execute(q, (since_iso,))]
+
+
+def sensor_days(c):
+    """Media giornaliera = media delle medie orarie (campionamento irregolare non pesa)."""
+    days, sim = {}, {}
+    for r in hourly(c, "0000", use_sim(c)):
+        if r["t"] is None:
+            continue
+        d = r["h"][:10]
+        days.setdefault(d, []).append(r["t"])
+        sim[d] = sim.get(d, True) and bool(r["allsim"])
+    out = {d: (sum(v) / len(v), "sensore-sim" if sim[d] else "sensore") for d, v in days.items()}
+    prev = None
+    now = now_local().replace(tzinfo=None)
+    rec = hourly(c, (now - datetime.timedelta(hours=24)).isoformat(timespec="seconds"), use_sim(c))
+    rec = [r for r in rec if r["t"] is not None]
+    if rec and rec[-1]["h"] >= (now - datetime.timedelta(hours=6)).isoformat()[:13]:
+        prev = sum(r["t"] for r in rec) / len(rec)
+    return out, prev
+
+
+def simulate_history(c, days=7):
+    """Storico realistico: 18-23 C con ciclo giorno/notte, umidita' inversa, ogni 30 minuti."""
+    now = now_local().replace(tzinfo=None, second=0, microsecond=0)
+    rnd = random.Random(int(now.timestamp()) // 3600)
+    t0 = now - datetime.timedelta(days=days)
+    drift, n, ts = 0.0, 0, t0
+    c.execute("DELETE FROM readings WHERE source='simulato' AND ts >= ?", (t0.isoformat(timespec="seconds"),))
+    while ts <= now:
+        if ts.hour == 0 and ts.minute == 0:
+            drift = max(-0.8, min(0.8, drift + rnd.uniform(-0.4, 0.4)))
+        hour = ts.hour + ts.minute / 60
+        temp = 20.5 + drift + 2.3 * math.sin(2 * math.pi * (hour - 10) / 24) + rnd.gauss(0, 0.15)
+        hum = 58 - (temp - 20.5) * 3 + rnd.gauss(0, 1.2)
+        c.execute("INSERT INTO readings (ts, temp, hum, source, created_at) VALUES (?,?,?,?,?)",
+                  (ts.isoformat(timespec="seconds"), round(min(23.4, max(17.6, temp)), 2), round(max(30, min(85, hum)), 1),
+                   "simulato", now.isoformat(timespec="seconds")))
+        n += 1
+        ts += datetime.timedelta(minutes=30)
+    return n
+
+
+def sensor_status(c):
+    last = c.execute("SELECT * FROM readings ORDER BY ts DESC, id DESC LIMIT 1").fetchone()
+    last_real = c.execute("SELECT * FROM readings WHERE source!='simulato' ORDER BY ts DESC, id DESC LIMIT 1").fetchone()
+    now = now_local().replace(tzinfo=None)
+    age = lambda r: round((now - datetime.datetime.fromisoformat(r["ts"])).total_seconds() / 60) if r else None
+    counts = {r["source"]: r["n"] for r in c.execute("SELECT source, count(*) n FROM readings GROUP BY source")}
+    return {"last": dict(last) if last else None, "last_min": age(last),
+            "last_real": dict(last_real) if last_real else None, "last_real_min": age(last_real),
+            "counts": counts, "use_simulated": use_sim(c), "token_set": bool(sensor_token(c)),
+            "lan_ip": os.environ.get("LAN_IP", ""), "port": PORT}
+
+
 # ------------------------------------------------------------------ tempo base
 KOMBU_BASE = float(KOMBUCHA["f1"]["base_days_20"])
 GENERIC_BASE = 7.0
@@ -244,7 +410,8 @@ def d_(s):
     return datetime.date.fromisoformat(str(s)[:10])
 
 
-def readiness(j, events, wx, today, hour_frac):
+def readiness(j, events, wx, today, hour_frac, sens=None, sens_prev=None):
+    sens = sens or {}
     kombu = (j.get("kind") or "verdure") == "kombucha"
     q = float(j.get("q10") or 2.2)
     base = float(j.get("_base") or j.get("base_days") or (12 if kombu else 7))
@@ -273,6 +440,12 @@ def readiness(j, events, wx, today, hour_frac):
                 best = e
         if best:
             return float(best["value"]), "misurata"
+        if mode != "fissa":
+            sv = sens.get(day.isoformat())
+            if sv and day <= today:
+                return sv[0], sv[1]
+            if day > today and sens_prev is not None:
+                return sens_prev, "sensore-prev"
         if mode == "auto" and day.month in SUMMER:
             w = wx.get(day.isoformat())
             if w:
@@ -356,12 +529,13 @@ def jars_payload():
         wx = {r["date"]: (r["tmean"], r["source"]) for r in c.execute("SELECT * FROM weather_days")}
         recs = {r["id"]: dict(r) for r in c.execute("SELECT id, min_time_days, target_temp_c, q10 FROM recipes")}
         ov = overrides(c)
+        sens, sens_prev = sensor_days(c)
     for j in jars:
         j["events"] = evs.get(j["id"], [])
         j["base_info"] = jar_base(j, recs, ov)
         j["_base"] = j["base_info"]["eff"]
         try:
-            j["ready"] = readiness(j, j["events"], wx, today, hour_frac)
+            j["ready"] = readiness(j, j["events"], wx, today, hour_frac, sens, sens_prev)
         except Exception as e:  # noqa: BLE001
             print("[fermentati] prontezza errore:", j.get("id"), repr(e), flush=True)
             j["ready"] = None
@@ -494,6 +668,75 @@ class Handler(SimpleHTTPRequestHandler):
             if p == "/api/meteo/refresh" and method == "POST":
                 refresh_weather()
                 return self.send_json({"ok": True, "stato": METEO})
+            if p == "/api/temp" and method in ("GET", "POST"):
+                qs = {k: v[0] for k, v in (parse_qs(self.path.split("?", 1)[1]).items() if "?" in self.path else [])}
+                body = None
+                if method == "POST":
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n > 2_000_000:
+                        raise ValueError("invio troppo grande")
+                    raw = self.rfile.read(n) if n else b""
+                    if raw and "json" in self.headers.get("Content-Type", ""):
+                        body = json.loads(raw)
+                    elif raw:
+                        body = {k: v[0] for k, v in parse_qs(raw.decode("utf-8", "replace")).items()}
+                batch = body if isinstance(body, list) else (body.get("readings") if isinstance(body, dict) and isinstance(body.get("readings"), list) else None)
+                common = dict(qs)
+                if isinstance(body, dict):
+                    common.update({k: v for k, v in body.items() if not isinstance(v, (dict, list))})
+                with LOCK, conn() as c:
+                    tok = sensor_token(c)
+                    if tok and str(common.get("token") or self.headers.get("X-Token") or "") != tok:
+                        return self.send_json({"error": "token mancante o sbagliato"}, 403)
+                    if batch is not None:
+                        if len(batch) > MAX_BATCH:
+                            raise ValueError(f"massimo {MAX_BATCH} letture per invio")
+                        ok, skip, errs = 0, 0, []
+                        for i, item in enumerate(batch):
+                            try:
+                                if not isinstance(item, dict):
+                                    raise ValueError("ogni lettura deve essere un oggetto")
+                                t, h, ts, src = extract_reading({**common, **item})
+                                _, what = save_reading(c, t, h, src, ts, merge=False)
+                                ok += what == "salvata"; skip += what != "salvata"
+                            except ValueError as e:
+                                errs.append(f"#{i}: {e}")
+                        print(f"[fermentati] batch letture: {ok} salvate, {skip} gia' presenti, {len(errs)} scartate", flush=True)
+                        return self.send_json({"ok": True, "salvate": ok, "gia_presenti": skip, "scartate": len(errs), "errori": errs[:20]})
+                    t, h, ts, src = extract_reading(common)
+                    rid, what = save_reading(c, t, h, src, ts)
+                    r = c.execute("SELECT * FROM readings WHERE id=?", (rid,)).fetchone()
+                print(f"[fermentati] lettura {src}: t={t} h={h} ({what})", flush=True)
+                return self.send_json({"ok": True, "esito": what, "lettura": dict(r)})
+            if p == "/api/sensor" and method == "GET":
+                with conn() as c:
+                    st = sensor_status(c)
+                    now = now_local().replace(tzinfo=None)
+                    st["h24"] = hourly(c, (now - datetime.timedelta(hours=24)).isoformat(timespec="seconds"), True)
+                    st["d7"] = hourly(c, (now - datetime.timedelta(days=7)).isoformat(timespec="seconds"), True)
+                return self.send_json(st)
+            if p == "/api/sensor/series" and method == "GET":
+                qs = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+                since = (qs.get("from") or ["0000"])[0][:19]
+                with conn() as c:
+                    return self.send_json(hourly(c, since, use_sim(c)))
+            if p == "/api/sensor/settings" and method == "POST":
+                b = self.body()
+                with LOCK, conn() as c:
+                    if "use_simulated" in b:
+                        set_setting(c, "use_simulated", "1" if b["use_simulated"] else "0")
+                    if "token" in b:
+                        set_setting(c, "sensor_token", re.sub(r"[^A-Za-z0-9_-]", "", str(b["token"] or ""))[:40])
+                    return self.send_json(sensor_status(c))
+            if p == "/api/sensor/simulate" and method == "POST":
+                b = self.body()
+                with LOCK, conn() as c:
+                    n = simulate_history(c, max(1, min(30, int(b.get("days") or 7))))
+                return self.send_json({"ok": True, "letture": n})
+            if p == "/api/sensor/simulated" and method == "DELETE":
+                with LOCK, conn() as c:
+                    n = c.execute("DELETE FROM readings WHERE source='simulato'").rowcount
+                return self.send_json({"ok": True, "cancellate": n})
             if p == "/api/base" and method == "POST":
                 b = self.body()
                 key = str(b.get("key") or "")

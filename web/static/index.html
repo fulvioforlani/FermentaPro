@@ -121,6 +121,7 @@
     </div>
     <p class="how"><svg><use href="#i-info"/></svg><span>Stima: giorni a 20 °C corretti ogni giorno con la temperatura (Q10 2,2). <b>Decidono assaggio e odore.</b></span></p>
     <p class="how meteo" id="j-meteo"></p>
+    <button class="sens-strip off" id="j-sensor" type="button" aria-label="Sensore di temperatura"></button>
     <div class="reminders" id="j-rem"></div>
     <div class="shelf" id="j-list"></div>
     <details class="done" id="j-done-wrap" hidden><summary>Finiti <b id="j-done-n"></b></summary><div class="shelf small" id="j-done"></div></details>
@@ -286,6 +287,7 @@
 </dialog>
 
 <dialog id="dlg-ask" class="sheet ask" aria-labelledby="ask-t"><div class="ask-in"><p id="ask-t"></p><div class="actions"><button class="btn ghost" type="button" id="ask-n">No</button><button class="btn primary" type="button" id="ask-y">Si</button></div></div></dialog>
+<dialog id="dlg-s" class="sheet" aria-labelledby="ds-title"><div class="sheet-in" id="ds-body"></div></dialog>
 <dialog id="dlg-d" class="sheet" aria-labelledby="dd-title"><div class="sheet-in" id="dd-body"></div></dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

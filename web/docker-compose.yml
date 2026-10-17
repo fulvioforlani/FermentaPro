@@ -10,6 +10,10 @@ services:
       - fermentati_data:/data
     environment:
       - TZ=Europe/Rome
+      # IP del PC in LAN (Wi-Fi, DHCP): mostrato nelle istruzioni del sensore. Fissarlo nel router.
+      - LAN_IP=192.168.1.58
+      # token facoltativo per /api/temp (vuoto = nessun controllo); si puo' impostare anche dall'app
+      - SENSOR_TOKEN=
 
 volumes:
   fermentati_data:
