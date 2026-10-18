@@ -121,6 +121,10 @@ def init_db():
         for col, decl in NEW_COLS.items():
             if col not in have:
                 c.execute(f"ALTER TABLE jars ADD COLUMN {col} {decl}")
+        have_r = {r[1] for r in c.execute("PRAGMA table_info(recipes)")}
+        for col, decl in (("want", "INTEGER DEFAULT 0"), ("kind", "TEXT DEFAULT ''"), ("shelf_days", "REAL DEFAULT 0")):
+            if col not in have_r:
+                c.execute(f"ALTER TABLE recipes ADD COLUMN {col} {decl}")
         c.execute("""CREATE TABLE IF NOT EXISTS jar_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT, jar_id INTEGER NOT NULL, date TEXT NOT NULL,
             type TEXT NOT NULL, value REAL, value2 REAL, note TEXT DEFAULT '', created_at TEXT NOT NULL)""")
@@ -771,11 +775,13 @@ class Handler(SimpleHTTPRequestHandler):
                         0.7 if meth == "salamoia" else None, float(b.get("target_temp_c") or 20),
                         max(0.1, float(b.get("min_time_days") or 7)), max(0.0, float(b.get("salt_g") or 0)),
                         max(0.0, float(b.get("water_ml") or 0)), 2.2, str(b.get("notes") or "")[:4000], 0, "",
-                        now_local().isoformat(timespec="seconds"))
+                        now_local().isoformat(timespec="seconds"), 1 if b.get("want") else 0,
+                        "scorta" if b.get("kind") == "scorta" else "", max(0.0, float(b.get("shelf_days") or 0)))
                 with LOCK, conn() as c:
                     cur = c.execute("""INSERT INTO recipes (name, method, total_weight_g, brine_pct, jar_volume_ml, headspace_ml,
-                        packing_fraction, target_temp_c, min_time_days, salt_g, water_ml, q10, notes, rating, tasted_notes, created_at)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", vals)
+                        packing_fraction, target_temp_c, min_time_days, salt_g, water_ml, q10, notes, rating, tasted_notes, created_at,
+                        want, kind, shelf_days)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", vals)
                     rid = cur.lastrowid
                     for i in items[:40]:
                         c.execute("INSERT INTO recipe_items (recipe_id, item_type, name, weight_g) VALUES (?,?,?,?)",
@@ -787,13 +793,15 @@ class Handler(SimpleHTTPRequestHandler):
                 sets, vals = [], []
                 if "rating" in b:
                     sets.append("rating=?"); vals.append(max(0, min(5, int(b["rating"] or 0))))
+                if "want" in b:
+                    sets.append("want=?"); vals.append(1 if b["want"] else 0)
                 if "tasted_notes" in b:
                     sets.append("tasted_notes=?"); vals.append(str(b["tasted_notes"] or "")[:4000])
                 if not sets:
                     return self.send_json({"error": "niente da salvare"}, 400)
                 with LOCK, conn() as c:
                     c.execute(f"UPDATE recipes SET {', '.join(sets)} WHERE id=?", (*vals, int(m.group(1))))
-                    r = c.execute("SELECT id, rating, tasted_notes FROM recipes WHERE id=?", (int(m.group(1)),)).fetchone()
+                    r = c.execute("SELECT id, rating, tasted_notes, want FROM recipes WHERE id=?", (int(m.group(1)),)).fetchone()
                 return self.send_json(dict(r) if r else {"error": "non trovata"}, 200 if r else 404)
             if p == "/api/jars" and method == "GET":
                 return self.send_json(jars_payload())

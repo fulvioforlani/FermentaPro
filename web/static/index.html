@@ -20,6 +20,7 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.9 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z" fill="currentColor"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m20 20-3.6-3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
   <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18" r="1.7" fill="currentColor"/></symbol>
@@ -137,6 +138,7 @@
       <div class="ing-hints" id="ing-hints"></div>
     </div>
     <div id="ing-res" hidden></div>
+    <div id="r-season" class="panel season-panel"></div>
     <div id="r-hero"></div>
     <div class="filters panel">
       <label class="search"><svg><use href="#i-search"/></svg><input id="r-q" type="search" placeholder="Cerca: cavolo, aneto, kimchi…" aria-label="Cerca ricette"></label>
@@ -288,10 +290,12 @@
 
 <dialog id="dlg-ask" class="sheet ask" aria-labelledby="ask-t"><div class="ask-in"><p id="ask-t"></p><div class="actions"><button class="btn ghost" type="button" id="ask-n">No</button><button class="btn primary" type="button" id="ask-y">Si</button></div></div></dialog>
 <dialog id="dlg-s" class="sheet" aria-labelledby="ds-title"><div class="sheet-in" id="ds-body"></div></dialog>
+<dialog id="dlg-l" class="sheet" aria-labelledby="dl-title"><div class="sheet-in" id="dl-body"></div></dialog>
 <dialog id="dlg-d" class="sheet" aria-labelledby="dd-title"><div class="sheet-in" id="dd-body"></div></dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="ricerca.js"></script>
 <script src="app.js"></script>
+<script src="extra.js"></script>
 </body>
 </html>
