@@ -7,7 +7,7 @@ const CRISP20 = [['cetriolo', 5], ['zucchin', 5], ['ravanell', 5], ['asparag', 5
   ['peperoncin', 10], ['jalape', 10], ['habanero', 10], ['topinambur', 10], ['rapa', 12], ['olive', 14], ['carot', 14], ['cavolo', 14], ['verza', 14], ['barbabiet', 21], ['aglio', 21]];
 const CRISP_SKIP = /limon|aranc|pompelm|zenzero|goji|rafano|curcuma/i;
 function crispInfo(r) {
-  if (r.kind === 'scorta' || r.kind === 'bevanda') return null;
+  if (r.kind === 'scorta' || NOMAIN.includes(r.kind)) return null;
   let m = null, key = '';
   for (const i of r.items) {
     if (i.type !== 'vegetable' || CRISP_SKIP.test(i.name)) continue;
@@ -238,7 +238,7 @@ async function saveCrisp(jid) {
 function crispTips(r) {
   const names = r.items.filter(i => i.type === 'vegetable').map(i => i.name.toLowerCase()), has = (...k) => names.some(n => k.some(x => n.includes(x)));
   const t = [];
-  if (r.kind === 'scorta' || r.kind === 'bevanda') return t;
+  if (r.kind === 'scorta' || NOMAIN.includes(r.kind)) return t;
   if (has('cetriol', 'zucchin')) t.push('Taglia via l\'estremita\' del fiore: contiene enzimi che ammorbidiscono. Sono tra le verdure che cedono prima.');
   if (has('cetriol', 'zucchin', 'peperon', 'fagiolin', 'melanzan', 'pomodor')) t.push('Verdura che cede presto: metti in frigo appena e\' acida al punto giusto, senza aspettare.');
   if (r.method === 'secco') t.push('A secco e grattugiato/affettato sottile resta morbido per natura. Per piu\' croccantezza tieni pezzi piu\' grossi o passa alla salamoia al 3-5%.');
@@ -256,7 +256,7 @@ function renderSeasonPanel() {
   const el = $('#r-season'); if (!el) return;
   const mo = SEASON_MO, vegs = [...new Set(DATA.recipes.flatMap(r => r.items.filter(i => i.type === 'vegetable').map(i => i.name)))];
   const inS = vegs.filter(n => (vegMonths(n) || []).includes(mo)).sort((a, b) => a.localeCompare(b, 'it'));
-  const rec = DATA.recipes.filter(r => r.kind !== 'scorta' && r.kind !== 'bevanda' && recipeInSeason(r, mo)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id).slice(0, 8);
+  const rec = DATA.recipes.filter(r => r.kind !== 'scorta' && !NOMAIN.includes(r.kind) && recipeInSeason(r, mo)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id).slice(0, 8);
   const sc = DATA.recipes.filter(r => r.kind === 'scorta' && recipeInSeason(r, mo)).slice(0, 4);
   const mini = r => `<button type="button" class="mini" data-id="${r.id}">${r.want ? '<svg class="hrt"><use href="#i-heart"/></svg>' : ''}<b>${esc(cleanName(r.name).replace(/ \(stile .*\)$/, ''))}</b><small>${r.kind === 'scorta' ? 'scorta ' + Math.round((r.shelf_days || 0) / 30) + ' mesi' : (crispAt(r) != null ? 'croccante ' + nf(crispAt(r), crispAt(r) % 1 ? 1 : 0) + ' gg' : nf(rMin(r)) + ' gg')}</small></button>`;
   const open = el.querySelector('details') ? el.querySelector('details').open : true;
@@ -318,6 +318,28 @@ function updateWantCount() {
 /* ---------- sezioni Bevande e Salse ---------- */
 const isSalsa = r => r.kind === 'salsa' || /\b(salsa|sriracha|harissa)\b/i.test(r.name);
 const isBevanda = r => r.kind === 'bevanda';
+const isJiang = r => r.kind === 'jiang';
+const isKind = k => r => r.kind === k;
+const CATS = [['ricette', 'Tutte'], ['bevande', 'Bevande'], ['salse', 'Salse'], ['jiang', 'Jiàng 酱'], ['latticini', 'Latticini'], ['cereali', 'Cereali'], ['alcolici', 'Idromele e alcolici']];
+const NEWSEC = {
+  latticini: ['Latticini', 'fermentati', 'Latte fermentato: yogurt, kefir, burro e formaggi freschi. Usa latte fresco di qualità, pastorizzato o di fonte sicura, utensili puliti e rispetta le temperature: il latte crudo comporta rischi. Quantità in grammi.', 'Cerca: yogurt, kefir, burro…'],
+  cereali: ['Cereali', 'e tuberi', 'Cereali fermentati: pane, porridge, pancake, bevande e impasti. Le fermentazioni sono spesso brevi (12-48 ore) e a temperatura ambiente. Quantità in grammi.', 'Cerca: lievito madre, porridge, idli…'],
+  alcolici: ['Idromele e', 'alcolici', 'Idromele, sidro, vino e bevande di riso: fermentazioni alcoliche per uso personale. Non chiudere mai ermeticamente un recipiente in fermentazione (usa il gorgogliatore), pulisci bene tutto. La vendita è vietata e la distillazione casalinga è illegale in Italia: qui non ci sono ricette di distillati. Quantità in grammi.', 'Cerca: idromele, sidro, makgeolli…']
+};
+function buildSections() {
+  const main = $('#main');
+  for (const [v, [t1, t2, intro, ph]] of Object.entries(NEWSEC)) {
+    if ($('#v-' + v)) continue;
+    const sec = document.createElement('section'); sec.className = 'view'; sec.id = 'v-' + v; sec.setAttribute('aria-labelledby', 't-' + v);
+    sec.innerHTML = `<div class="catbar" data-catbar></div><div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-${v}">${t1} <em>${t2}</em></h1></div>
+      <p class="how"><svg><use href="#i-info"/></svg><span>${esc(intro)}</span></p>
+      <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="${v}-q" type="search" placeholder="${esc(ph)}" aria-label="Cerca"></label><span class="count" id="${v}-count"></span></div>
+      <div class="grid" id="${v}-grid"></div>`;
+    main.appendChild(sec);
+  }
+  $$('[data-catbar]').forEach(b => { b.innerHTML = CATS.map(([v, t]) => `<a class="chip" href="#${v}" data-v="${v}">${t}</a>`).join(''); });
+  const cur = (location.hash || '').slice(1); if (cur) go(cur);
+}
 function renderSection(gridId, countId, qId, pred) {
   const q = norm($(qId).value || ''), all = DATA.recipes.filter(pred);
   const L = all.filter(r => !q || norm(r.name + ' ' + r.items.map(i => i.name).join(' ')).includes(q)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id);
@@ -325,7 +347,8 @@ function renderSection(gridId, countId, qId, pred) {
   $(gridId).innerHTML = L.map(rCard).join('') || '<p class="hint">Nessuna ricetta.</p>';
 }
 function initSections() {
-  const defs = [['#b-grid', '#b-count', '#b-q', isBevanda, 'bevande'], ['#s-grid', '#s-count', '#s-q', isSalsa, 'salse']];
+  buildSections();
+  const defs = [['#b-grid', '#b-count', '#b-q', isBevanda, 'bevande'], ['#s-grid', '#s-count', '#s-q', isSalsa, 'salse'], ['#j-grid2', '#j-count2', '#j-q2', isJiang, 'jiang'], ...['latticini', 'cereali', 'alcolici'].map(v => ['#' + v + '-grid', '#' + v + '-count', '#' + v + '-q', isKind(v), v])];
   for (const [g, c, q, pred, view] of defs) {
     const draw = () => renderSection(g, c, q, pred);
     draw();

@@ -174,12 +174,15 @@ let DATA = { recipes: [], vegetables: [], spices: [] }, JARS = [], RBY = new Map
 const FEATURED = 202;
 
 /* ---------- navigazione ---------- */
-const VIEWS = ['sale', 'vasi', 'ricette', 'bevande', 'salse', 'kombucha', 'guida', 'adatta'];
+const CATV = ['bevande', 'salse', 'jiang', 'latticini', 'cereali', 'alcolici'];
+const OTHER = ['jiang', 'latticini', 'cereali', 'alcolici'];
+const NOMAIN = ['bevanda', ...OTHER];
+const VIEWS = ['sale', 'vasi', 'ricette', ...CATV, 'kombucha', 'guida', 'adatta'];
 const onView = {};
 function go(v) {
   if (!VIEWS.includes(v)) v = 'sale';
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
-  $$('[data-v]').forEach(a => { const on = a.dataset.v === v; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  $$('[data-v]').forEach(a => { const on = a.dataset.v === v || (a.dataset.v === 'ricette' && CATV.includes(v) && !!a.closest('.mainnav, .tabbar')); a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
   window.scrollTo(0, 0);
   if (onView[v]) onView[v]();
@@ -933,10 +936,10 @@ const starsHTML = n => `<span class="stars" aria-label="${n} stelle su 5">${[1, 
 function rCard(r) {
   const look = recipeLook(r), v = r.items.filter(i => i.type === 'vegetable');
   return `<button class="rcard" type="button" data-id="${r.id}" style="--tint:${look.tint}">
-    <div class="rtop"><span class="mbadge ${r.method}">${r.kind === 'bevanda' ? 'bevanda' : r.method === 'secco' ? 'a secco' : 'salamoia'}</span>${wantBtn(r, 'card')}${r.id === FEATURED ? `<span class="feat" title="In evidenza"><svg><use href="#i-star"/></svg></span>` : ''}
+    <div class="rtop"><span class="mbadge ${r.method}">${r.kind === 'bevanda' ? 'bevanda' : OTHER.includes(r.kind) ? ({ jiang: 'jiàng', latticini: 'latte', cereali: 'cereali', alcolici: 'alcolico' })[r.kind] : r.method === 'secco' ? 'a secco' : 'salamoia'}</span>${wantBtn(r, 'card')}${r.id === FEATURED ? `<span class="feat" title="In evidenza"><svg><use href="#i-star"/></svg></span>` : ''}
       <div class="jarstage">${jarSVG({ ...look, fill: .82, bubbles: 4, seed: r.id, alt: '' })}</div></div>
     <div class="rb"><h3>${esc(r.name)}${DUP.has(r.name) ? ` <small style="color:var(--mut2);font:500 12px var(--f-sans)">#${r.id}</small>` : ''}</h3>
-      ${r.kind === 'bevanda' && !(r.salt_g > 0) ? `<div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span><span>${nf(rMin(r), rMin(r) % 1 ? 1 : 0)}<small>gg</small></span>` : `<div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span><span>${nf(r.salt_g, r.salt_g < 10 && r.salt_g % 1 ? 1 : 0)}<small>g sale</small></span><span>${fp(Math.round(rPct(r) * 10) / 10)}<small>%</small></span><span>${nf(rMin(r), rMin(r) % 1 ? 1 : 0)}<small>gg</small></span>`}</div>
+      ${(r.kind === 'bevanda' && !(r.salt_g > 0)) || OTHER.includes(r.kind) ? `<div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span>${OTHER.includes(r.kind) && r.salt_g > 0 ? `<span>${nf(r.salt_g)}<small>g sale</small></span>` : ''}<span>${nf(rMin(r), rMin(r) % 1 ? 1 : 0)}<small>gg</small></span>` : `<div class="rnums"><span>${nf(r.total_weight_g)}<small>g</small></span><span>${nf(r.salt_g, r.salt_g < 10 && r.salt_g % 1 ? 1 : 0)}<small>g sale</small></span><span>${fp(Math.round(rPct(r) * 10) / 10)}<small>%</small></span><span>${nf(rMin(r), rMin(r) % 1 ? 1 : 0)}<small>gg</small></span>`}</div>
       ${r.kind === 'scorta' ? `<div class="crisp">scorta · ~${Math.round((r.shelf_days || 0) / 30)} mesi in dispensa</div>` : crispAt(r) != null ? `<div class="crisp">croccante fino a ~${nf(crispAt(r), crispAt(r) % 1 ? 1 : 0)} gg</div>` : ''}
       <div class="vdots">${v.slice(0, 4).map(i => `<span><i style="background:${vegColor(i.name)}"></i>${esc(i.name)}</span>`).join('')}</div>
       ${starsHTML(r.rating || 0)}</div></button>`;
@@ -961,7 +964,7 @@ function rFilter() {
     (!F.m || r.method === F.m) &&
     (!F.s || (F.s === 'now' ? r.months.includes(mNow) : ss[2].some(m => r.months.includes(m)))) &&
     (!F.veg || r.items.some(i => i.name === F.veg)) &&
-    (!F.want || r.want) && (!F.kind || r.kind === F.kind) && r.kind !== 'bevanda' &&
+    (!F.want || r.want) && (!F.kind || r.kind === F.kind) && !NOMAIN.includes(r.kind) &&
     (!q || norm(r.name + ' ' + r.items.map(i => i.name).join(' ')).includes(q))
   ).sort((a, b) => (b.id === FEATURED) - (a.id === FEATURED) || (b.rating || 0) - (a.rating || 0) || a.id - b.id);
 }
@@ -1012,7 +1015,7 @@ function openRecipe(id) {
       <div class="rd-vis">
         <div class="jarstage" style="background:radial-gradient(160px 130px at 50% 60%,${look.tint},transparent 75%)">${jarSVG({ ...look, fill: .86, bubbles: 9, seed: r.id + 1, animate: true, alt: r.name })}</div>
         <div class="stats">
-          ${r.kind === 'bevanda' && !(r.salt_g > 0) ? tile(nf(r.total_weight_g) + ' g', 'totale') + (r.water_ml ? tile(nf(r.water_ml) + ' g', 'acqua') : '') : tile(nf(r.total_weight_g) + ' g', 'verdure') + tile(nf(r.salt_g, r.salt_g % 1 && r.salt_g < 10 ? 1 : 0) + ' g', 'sale') + tile(fp(Math.round(p * 100) / 100) + ' %', r.method === 'secco' ? 'sulle verdure' : "sull'acqua", z === 'ok' ? 'ok' : '') + (r.method === 'salamoia' ? tile(nf(r.water_ml) + ' ml', 'acqua') : '')}
+          ${(r.kind === 'bevanda' && !(r.salt_g > 0)) || OTHER.includes(r.kind) ? tile(nf(r.total_weight_g) + ' g', 'ingredienti') + (OTHER.includes(r.kind) && r.salt_g > 0 ? tile(nf(r.salt_g) + ' g', 'sale') : '') + (r.water_ml ? tile(nf(r.water_ml) + ' g', 'acqua') : '') : tile(nf(r.total_weight_g) + ' g', 'verdure') + tile(nf(r.salt_g, r.salt_g % 1 && r.salt_g < 10 ? 1 : 0) + ' g', 'sale') + tile(fp(Math.round(p * 100) / 100) + ' %', r.method === 'secco' ? 'sulle verdure' : "sull'acqua", z === 'ok' ? 'ok' : '') + (r.method === 'salamoia' ? tile(nf(r.water_ml) + ' ml', 'acqua') : '')}
           ${tile(nf(r.target_temp_c) + ' °C', 'temperatura')}${tile(nf(rMin(r), rMin(r) % 1 ? 1 : 0) + '+ gg', 'minimo')}
           ${crispAt(r) != null ? tile(nf(crispAt(r), crispAt(r) % 1 ? 1 : 0) + ' gg', 'croccante fino a', crispAt(r) <= rMin(r) + 2 ? 'warn' : '') : ''}${r.kind === 'scorta' ? tile('~' + Math.round((r.shelf_days || 0) / 30) + ' mesi', 'in dispensa') : ''}
         </div>

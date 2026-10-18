@@ -48,8 +48,6 @@
     <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg>Sale</a>
     <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg>Vasi<b class="badge" data-badge hidden></b></a>
     <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg>Ricette</a>
-    <a href="#bevande" data-v="bevande"><svg><use href="#i-pour"/></svg>Bevande</a>
-    <a href="#salse" data-v="salse"><svg><use href="#i-drop"/></svg>Salse</a>
     <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg>Kombucha</a>
     <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg>Guida</a>
     <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg>Adatta</a>
@@ -132,6 +130,7 @@
 
   <!-- 3. RICETTARIO -->
   <section class="view" id="v-ricette" aria-labelledby="t-ric">
+    <div class="catbar" data-catbar></div>
     <div class="vhead row-head"><div><p class="eyebrow">Ricettario</p><h1 id="t-ric">Le <em>ricette</em></h1></div>
       <button class="btn ghost want-top" id="r-wantbtn" type="button"><svg><use href="#i-heart"/></svg>Da provare <b id="r-wantn">0</b></button></div>
     <div class="ing panel">
@@ -155,6 +154,7 @@
 
   <!-- BEVANDE FERMENTATE -->
   <section class="view" id="v-bevande" aria-labelledby="t-bev">
+    <div class="catbar" data-catbar></div>
     <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-bev">Bevande <em>fermentate</em></h1></div>
     <p class="how"><svg><use href="#i-info"/></svg><span>Quantità in grammi. Le bevande in bottiglia fanno pressione: usa bottiglie adatte, aprile con cautela e tienile in frigo appena pronte. Per il kombucha di base c'è la sezione <a href="#kombucha" data-v="kombucha"><b>Kombucha</b></a> con il calcolatore.</span></p>
     <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="b-q" type="search" placeholder="Cerca: kombucha, kefir, zenzero…" aria-label="Cerca bevande"></label><span class="count" id="b-count"></span></div>
@@ -163,10 +163,21 @@
 
   <!-- SALSE -->
   <section class="view" id="v-salse" aria-labelledby="t-sal">
+    <div class="catbar" data-catbar></div>
     <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-sal">Le <em>salse</em></h1></div>
     <p class="how"><svg><use href="#i-info"/></svg><span>Salse piccanti e condimenti fermentati. Le versioni da scorta (armadio) sono pastorizzate e con pH sotto 4: segui sempre le istruzioni di sicurezza nella ricetta. Le altre vanno in frigo.</span></p>
     <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="s-q" type="search" placeholder="Cerca: sriracha, harissa, peperoncino…" aria-label="Cerca salse"></label><span class="count" id="s-count"></span></div>
     <div class="grid" id="s-grid"></div>
+  </section>
+
+  <!-- JIANG -->
+  <section class="view" id="v-jiang" aria-labelledby="t-jiang">
+    <div class="catbar" data-catbar></div>
+    <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-jiang">Jiàng <em>酱</em></h1></div>
+    <p class="how"><svg><use href="#i-info"/></svg><span><b>Jiàng (酱)</b> indica la vasta famiglia di paste e salse fermentate della cucina asiatica, nate in Cina oltre 2000 anni fa per conservare carne, pesce e verdure. Col tempo si sono fatte soprattutto con legumi (come la soia) e cereali: da qui miso, gochujang, doubanjiang e simili.</span></p>
+    <p class="how"><svg><use href="#i-leaf"/></svg><span><b>Serve il koji</b>: riso (o orzo, grano) con la muffa buona <i>Aspergillus oryzae</i>, che trasforma amidi e proteine. Per iniziare compralo già pronto (negozi biologici, asiatici o online): bianco, fitto e dal profumo dolce di mela o castagna. Mai usarlo con macchie verdi, nere o odore di ammoniaca. Il sale è alto (6-12%) e fa parte della sicurezza: non ridurlo. Quantità in grammi.</span></p>
+    <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="j-q2" type="search" placeholder="Cerca: miso, gochujang, koji…" aria-label="Cerca jiàng"></label><span class="count" id="j-count2"></span></div>
+    <div class="grid" id="j-grid2"></div>
   </section>
 
   <!-- KOMBUCHA -->
@@ -252,8 +263,6 @@
   <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg><span>Sale</span></a>
   <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg><span>Vasi</span><b class="badge" data-badge hidden></b></a>
   <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg><span>Ricette</span></a>
-  <a href="#bevande" data-v="bevande"><svg><use href="#i-pour"/></svg><span>Bevande</span></a>
-  <a href="#salse" data-v="salse"><svg><use href="#i-drop"/></svg><span>Salse</span></a>
   <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg><span>Kombucha</span></a>
   <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg><span>Guida</span></a>
   <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg><span>Adatta</span></a>

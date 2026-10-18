@@ -796,3 +796,9 @@ dialog.sheet.ask{width:min(460px,92vw)}
 .want-top{align-self:flex-start}.want-top b{margin-left:6px;padding:1px 8px;border-radius:999px;background:rgba(255,107,138,.18);color:#ff6b8a}.want-top.has svg{color:#ff6b8a}.want-top.on{background:#ff6b8a;color:#1a0b10;border-color:#ff6b8a}.want-top.on svg,.want-top.on b{color:#1a0b10}
 
 @media(max-width:520px){.tabbar a{font-size:9.5px;padding:7px 0 6px}.tabbar a svg{width:20px;height:20px}}
+
+@media(max-width:860px){.tabbar{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}.tabbar::-webkit-scrollbar{display:none}.tabbar a{flex:0 0 auto;min-width:64px}}
+@media(min-width:861px) and (max-width:1250px){.mainnav a{padding:9px 11px;font-size:13.5px;gap:6px}.mainnav a svg{width:16px;height:16px}}
+
+.catbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.catbar .chip{text-decoration:none}

@@ -779,7 +779,7 @@ class Handler(SimpleHTTPRequestHandler):
                         max(0.1, float(b.get("min_time_days") or 7)), max(0.0, float(b.get("salt_g") or 0)),
                         max(0.0, float(b.get("water_ml") or 0)), 2.2, str(b.get("notes") or "")[:4000], 0, "",
                         now_local().isoformat(timespec="seconds"), 1 if b.get("want") else 0,
-                        b.get("kind") if b.get("kind") in ("scorta", "bevanda", "salsa") else "", max(0.0, float(b.get("shelf_days") or 0)))
+                        b.get("kind") if b.get("kind") in ("scorta", "bevanda", "salsa", "jiang", "latticini", "cereali", "alcolici") else "", max(0.0, float(b.get("shelf_days") or 0)))
                 with LOCK, conn() as c:
                     cur = c.execute("""INSERT INTO recipes (name, method, total_weight_g, brine_pct, jar_volume_ml, headspace_ml,
                         packing_fraction, target_temp_c, min_time_days, salt_g, water_ml, q10, notes, rating, tasted_notes, created_at,
