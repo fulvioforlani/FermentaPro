@@ -43,7 +43,7 @@ function fridgeDays(r, e) {
 const crispAt = r => { const c = crisp20(r); return c == null ? null : Math.round(adjDays(c, r.target_temp_c, r.q10) * 10) / 10; };
 
 /* ---------- stagioni ---------- */
-const SEAS_EXTRA = [['limon', [11, 12, 1, 2, 3, 4]], ['aranc', [11, 12, 1, 2, 3, 4]], ['pompelm', [11, 12, 1, 2, 3]], ['peperoncin', [7, 8, 9, 10]], ['jalape', [7, 8, 9, 10]], ['habanero', [7, 8, 9, 10]],
+const SEAS_EXTRA = [['limon', [11, 12, 1, 2, 3, 4]], ['aranc', [11, 12, 1, 2, 3, 4]], ['pompelm', [11, 12, 1, 2, 3]], ['peperoncin', [7, 8, 9, 10]], ['jalape', [7, 8, 9, 10]], ['habanero', [7, 8, 9, 10]], ['fresno', [7, 8, 9, 10]], ['serrano', [7, 8, 9, 10]], ['cayenna', [7, 8, 9, 10]], ['scotch', [7, 8, 9, 10]],
   ['topinambur', [11, 12, 1, 2, 3]], ['radicchio', [10, 11, 12, 1, 2, 3]], ['cavolo cinese', [10, 11, 12, 1, 2, 3]], ['pomodor', [6, 7, 8, 9]], ['cipollotto', [3, 4, 5, 6, 7, 8, 9, 10]], ['olive', [10, 11]]];
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 function seasonOf(text) {
@@ -77,7 +77,7 @@ async function toggleWant(id) {
     r.want = out.want;
     $$(`[data-want="${id}"]`).forEach(b => { b.classList.toggle('on', !!r.want); b.setAttribute('aria-pressed', String(!!r.want)); });
     if (F.want) renderRecipes();
-    renderSeasonPanel();
+    renderSeasonPanel(); updateWantCount();
     toast(r.want ? 'Segnata da provare' : 'Tolta da "da provare"');
   } catch (e) { toast(e.message, true); }
 }
@@ -273,6 +273,15 @@ function initExtra() {
   });
   $('#r-grid').addEventListener('click', e => { const b = e.target.closest('[data-want]'); if (b) { e.stopPropagation(); toggleWant(+b.dataset.want); } }, true);
   renderSeasonPanel();
+  updateWantCount();
+  ['#r-chips', '#r-reset'].forEach(s => $(s).addEventListener('click', () => setTimeout(updateWantCount, 0)));
+  $('#r-wantbtn').addEventListener('click', () => {
+    const n = DATA.recipes.filter(r => r.want).length;
+    if (!n) { toast('Nessuna ricetta segnata: tocca il cuore su una ricetta'); return; }
+    F.q = ''; F.m = F.s = F.kind = null; F.veg = ''; F.want = F.want ? null : '1';
+    $('#r-q').value = ''; $('#r-veg').value = ''; renderChips(); renderRecipes(); updateWantCount();
+    (F.want ? $('#r-grid') : $('#r-hero')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   const lb = $('#j-labels'); if (lb) lb.addEventListener('click', () => openLabel({}));
   $('#dlg-d').addEventListener('click', e => { const b = e.target.closest('[data-crisp-save]'); if (b) saveCrisp(+b.dataset.crispSave); });
   $('#dlg-d').addEventListener('change', e => { if (e.target.id !== 'dd-ft') return; const v = parseFloat(String(e.target.value).replace(',', '.')); if (isFinite(v)) { setFridgeT(clamp(v, -2, 12)); if (typeof DD === 'number') openDetail(DD); } });
@@ -297,4 +306,9 @@ function fixCut(step, r) {
   if (!/taglio macrobiotico/i.test(step)) return step;
   const l = cutList(r);
   return l.length ? `Pulisci e taglia le verdure — ${l.join('; ')}. Tagli regolari: fermentano in modo uniforme e restano croccanti.` : step;
+}
+
+function updateWantCount() {
+  const n = DATA.recipes.filter(r => r.want).length, b = $('#r-wantbtn'); if (!b) return;
+  $('#r-wantn').textContent = n; b.classList.toggle('on', !!F.want); b.classList.toggle('has', n > 0);
 }
