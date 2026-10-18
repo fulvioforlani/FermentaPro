@@ -802,3 +802,5 @@ dialog.sheet.ask{width:min(460px,92vw)}
 
 .catbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
 .catbar .chip{text-decoration:none}
+
+.guide-ant{padding:16px 20px;margin-top:8px}.guide-ant p{margin:0 0 10px;color:var(--tx2)}.guide-ant ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;color:var(--tx2);font-size:14.5px}.guide-ant b{color:var(--tx)}
