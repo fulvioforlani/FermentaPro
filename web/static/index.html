@@ -48,6 +48,8 @@
     <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg>Sale</a>
     <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg>Vasi<b class="badge" data-badge hidden></b></a>
     <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg>Ricette</a>
+    <a href="#bevande" data-v="bevande"><svg><use href="#i-pour"/></svg>Bevande</a>
+    <a href="#salse" data-v="salse"><svg><use href="#i-drop"/></svg>Salse</a>
     <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg>Kombucha</a>
     <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg>Guida</a>
     <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg>Adatta</a>
@@ -151,6 +153,22 @@
     <div class="empty" id="r-empty" hidden><div class="empty-jar"></div><p>Nessuna ricetta con questi filtri</p><button class="btn ghost" id="r-reset" type="button">Azzera filtri</button></div>
   </section>
 
+  <!-- BEVANDE FERMENTATE -->
+  <section class="view" id="v-bevande" aria-labelledby="t-bev">
+    <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-bev">Bevande <em>fermentate</em></h1></div>
+    <p class="how"><svg><use href="#i-info"/></svg><span>Quantità in grammi. Le bevande in bottiglia fanno pressione: usa bottiglie adatte, aprile con cautela e tienile in frigo appena pronte. Per il kombucha di base c'è la sezione <a href="#kombucha" data-v="kombucha"><b>Kombucha</b></a> con il calcolatore.</span></p>
+    <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="b-q" type="search" placeholder="Cerca: kombucha, kefir, zenzero…" aria-label="Cerca bevande"></label><span class="count" id="b-count"></span></div>
+    <div class="grid" id="b-grid"></div>
+  </section>
+
+  <!-- SALSE -->
+  <section class="view" id="v-salse" aria-labelledby="t-sal">
+    <div class="vhead"><p class="eyebrow">Ricettario</p><h1 id="t-sal">Le <em>salse</em></h1></div>
+    <p class="how"><svg><use href="#i-info"/></svg><span>Salse piccanti e condimenti fermentati. Le versioni da scorta (armadio) sono pastorizzate e con pH sotto 4: segui sempre le istruzioni di sicurezza nella ricetta. Le altre vanno in frigo.</span></p>
+    <div class="filters panel"><label class="search"><svg><use href="#i-search"/></svg><input id="s-q" type="search" placeholder="Cerca: sriracha, harissa, peperoncino…" aria-label="Cerca salse"></label><span class="count" id="s-count"></span></div>
+    <div class="grid" id="s-grid"></div>
+  </section>
+
   <!-- KOMBUCHA -->
   <section class="view" id="v-kombucha" aria-labelledby="t-kb">
     <div class="vhead row-head">
@@ -234,6 +252,8 @@
   <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg><span>Sale</span></a>
   <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg><span>Vasi</span><b class="badge" data-badge hidden></b></a>
   <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg><span>Ricette</span></a>
+  <a href="#bevande" data-v="bevande"><svg><use href="#i-pour"/></svg><span>Bevande</span></a>
+  <a href="#salse" data-v="salse"><svg><use href="#i-drop"/></svg><span>Salse</span></a>
   <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg><span>Kombucha</span></a>
   <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg><span>Guida</span></a>
   <a href="#adatta" data-v="adatta"><svg><use href="#i-resize"/></svg><span>Adatta</span></a>

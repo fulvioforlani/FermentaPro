@@ -7,7 +7,7 @@ const CRISP20 = [['cetriolo', 5], ['zucchin', 5], ['ravanell', 5], ['asparag', 5
   ['peperoncin', 10], ['jalape', 10], ['habanero', 10], ['topinambur', 10], ['rapa', 12], ['olive', 14], ['carot', 14], ['cavolo', 14], ['verza', 14], ['barbabiet', 21], ['aglio', 21]];
 const CRISP_SKIP = /limon|aranc|pompelm|zenzero|goji|rafano|curcuma/i;
 function crispInfo(r) {
-  if (r.kind === 'scorta') return null;
+  if (r.kind === 'scorta' || r.kind === 'bevanda') return null;
   let m = null, key = '';
   for (const i of r.items) {
     if (i.type !== 'vegetable' || CRISP_SKIP.test(i.name)) continue;
@@ -238,7 +238,7 @@ async function saveCrisp(jid) {
 function crispTips(r) {
   const names = r.items.filter(i => i.type === 'vegetable').map(i => i.name.toLowerCase()), has = (...k) => names.some(n => k.some(x => n.includes(x)));
   const t = [];
-  if (r.kind === 'scorta') return t;
+  if (r.kind === 'scorta' || r.kind === 'bevanda') return t;
   if (has('cetriol', 'zucchin')) t.push('Taglia via l\'estremita\' del fiore: contiene enzimi che ammorbidiscono. Sono tra le verdure che cedono prima.');
   if (has('cetriol', 'zucchin', 'peperon', 'fagiolin', 'melanzan', 'pomodor')) t.push('Verdura che cede presto: metti in frigo appena e\' acida al punto giusto, senza aspettare.');
   if (r.method === 'secco') t.push('A secco e grattugiato/affettato sottile resta morbido per natura. Per piu\' croccantezza tieni pezzi piu\' grossi o passa alla salamoia al 3-5%.');
@@ -256,7 +256,7 @@ function renderSeasonPanel() {
   const el = $('#r-season'); if (!el) return;
   const mo = SEASON_MO, vegs = [...new Set(DATA.recipes.flatMap(r => r.items.filter(i => i.type === 'vegetable').map(i => i.name)))];
   const inS = vegs.filter(n => (vegMonths(n) || []).includes(mo)).sort((a, b) => a.localeCompare(b, 'it'));
-  const rec = DATA.recipes.filter(r => r.kind !== 'scorta' && recipeInSeason(r, mo)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id).slice(0, 8);
+  const rec = DATA.recipes.filter(r => r.kind !== 'scorta' && r.kind !== 'bevanda' && recipeInSeason(r, mo)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id).slice(0, 8);
   const sc = DATA.recipes.filter(r => r.kind === 'scorta' && recipeInSeason(r, mo)).slice(0, 4);
   const mini = r => `<button type="button" class="mini" data-id="${r.id}">${r.want ? '<svg class="hrt"><use href="#i-heart"/></svg>' : ''}<b>${esc(cleanName(r.name).replace(/ \(stile .*\)$/, ''))}</b><small>${r.kind === 'scorta' ? 'scorta ' + Math.round((r.shelf_days || 0) / 30) + ' mesi' : (crispAt(r) != null ? 'croccante ' + nf(crispAt(r), crispAt(r) % 1 ? 1 : 0) + ' gg' : nf(rMin(r)) + ' gg')}</small></button>`;
   const open = el.querySelector('details') ? el.querySelector('details').open : true;
@@ -273,6 +273,7 @@ function initExtra() {
   });
   $('#r-grid').addEventListener('click', e => { const b = e.target.closest('[data-want]'); if (b) { e.stopPropagation(); toggleWant(+b.dataset.want); } }, true);
   renderSeasonPanel();
+  initSections();
   updateWantCount();
   ['#r-chips', '#r-reset'].forEach(s => $(s).addEventListener('click', () => setTimeout(updateWantCount, 0)));
   $('#r-wantbtn').addEventListener('click', () => {
@@ -311,4 +312,28 @@ function fixCut(step, r) {
 function updateWantCount() {
   const n = DATA.recipes.filter(r => r.want).length, b = $('#r-wantbtn'); if (!b) return;
   $('#r-wantn').textContent = n; b.classList.toggle('on', !!F.want); b.classList.toggle('has', n > 0);
+}
+
+
+/* ---------- sezioni Bevande e Salse ---------- */
+const isSalsa = r => r.kind === 'salsa' || /\b(salsa|sriracha|harissa)\b/i.test(r.name);
+const isBevanda = r => r.kind === 'bevanda';
+function renderSection(gridId, countId, qId, pred) {
+  const q = norm($(qId).value || ''), all = DATA.recipes.filter(pred);
+  const L = all.filter(r => !q || norm(r.name + ' ' + r.items.map(i => i.name).join(' ')).includes(q)).sort((a, b) => (b.want || 0) - (a.want || 0) || (b.rating || 0) - (a.rating || 0) || a.id - b.id);
+  $(countId).textContent = `${L.length} / ${all.length}`;
+  $(gridId).innerHTML = L.map(rCard).join('') || '<p class="hint">Nessuna ricetta.</p>';
+}
+function initSections() {
+  const defs = [['#b-grid', '#b-count', '#b-q', isBevanda, 'bevande'], ['#s-grid', '#s-count', '#s-q', isSalsa, 'salse']];
+  for (const [g, c, q, pred, view] of defs) {
+    const draw = () => renderSection(g, c, q, pred);
+    draw();
+    let t; $(q).addEventListener('input', () => { clearTimeout(t); t = setTimeout(draw, 120); });
+    $(g).addEventListener('click', e => {
+      const w = e.target.closest('[data-want]'); if (w) { e.stopPropagation(); toggleWant(+w.dataset.want).then(draw); return; }
+      const card = e.target.closest('.rcard'); if (card) openRecipe(+card.dataset.id);
+    }, true);
+    onView[view] = draw;
+  }
 }
