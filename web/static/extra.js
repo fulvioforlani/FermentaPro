@@ -246,6 +246,7 @@ function crispTips(r) {
   t.push('Tannini nel barattolo: una foglia di vite, ciliegio, quercia o rafano, oppure un cucchiaino di te\' nero in foglie.');
   if (r.method === 'salamoia') t.push('Cloruro di calcio alimentare ("pickle crisp"): circa 1 g per litro di salamoia, seguendo il dosaggio della confezione.');
   t.push('Fermenta piu\' fresco (15-18 °C se puoi): piu\' lento e piu\' soda. Poi frigo a 2-4 °C.');
+  t.push('Sale marino integrale: le tracce di calcio e magnesio rinforzano le pectine. Per i cetrioli aggiungi foglie di vite, quercia, ciliegio o rafano (o una bustina di te\'), usa cetrioli di dimensioni simili e mettili in acqua fredda prima.');
   t.push('Usa verdura fresca, fredda e appena raccolta; taglio grosso invece di fettine.');
   return t;
 }
@@ -316,7 +317,7 @@ function updateWantCount() {
 
 
 /* ---------- sezioni Bevande e Salse ---------- */
-const isSalsa = r => r.kind === 'salsa' || /\b(salsa|sriracha|harissa)\b/i.test(r.name);
+const isSalsa = r => r.kind === 'salsa' || /\b(salsa|sriracha|harissa|ketchup)\b/i.test(r.name);
 const isBevanda = r => r.kind === 'bevanda';
 const isJiang = r => r.kind === 'jiang';
 const isKind = k => r => r.kind === k;
