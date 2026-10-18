@@ -125,6 +125,9 @@ def init_db():
         for col, decl in (("want", "INTEGER DEFAULT 0"), ("kind", "TEXT DEFAULT ''"), ("shelf_days", "REAL DEFAULT 0")):
             if col not in have_r:
                 c.execute(f"ALTER TABLE recipes ADD COLUMN {col} {decl}")
+        c.execute("""CREATE TABLE IF NOT EXISTS crisp_obs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, jar_id INTEGER, veg TEXT NOT NULL,
+            warm_days REAL, fridge_days REAL NOT NULL, note TEXT DEFAULT '', created_at TEXT NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS jar_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT, jar_id INTEGER NOT NULL, date TEXT NOT NULL,
             type TEXT NOT NULL, value REAL, value2 REAL, note TEXT DEFAULT '', created_at TEXT NOT NULL)""")
@@ -803,6 +806,25 @@ class Handler(SimpleHTTPRequestHandler):
                     c.execute(f"UPDATE recipes SET {', '.join(sets)} WHERE id=?", (*vals, int(m.group(1))))
                     r = c.execute("SELECT id, rating, tasted_notes, want FROM recipes WHERE id=?", (int(m.group(1)),)).fetchone()
                 return self.send_json(dict(r) if r else {"error": "non trovata"}, 200 if r else 404)
+            if p == "/api/crisp" and method == "GET":
+                with conn() as c:
+                    return self.send_json([dict(r) for r in c.execute("SELECT * FROM crisp_obs ORDER BY id DESC LIMIT 500")])
+            if p == "/api/crisp" and method == "POST":
+                b = self.body()
+                veg = str(b.get("veg") or "").strip()[:60]
+                fr = float(b.get("fridge_days"))
+                wd = float(b["warm_days"]) if b.get("warm_days") not in (None, "") else None
+                if not veg or not 0 <= fr <= 365:
+                    raise ValueError("giorni non validi")
+                with LOCK, conn() as c:
+                    cur = c.execute("INSERT INTO crisp_obs (jar_id, veg, warm_days, fridge_days, note, created_at) VALUES (?,?,?,?,?,?)",
+                                    (b.get("jar_id"), veg, wd, fr, str(b.get("note") or "")[:300], now_local().isoformat(timespec="seconds")))
+                return self.send_json({"ok": True, "id": cur.lastrowid}, 201)
+            m = re.fullmatch(r"/api/crisp/(\d+)", p)
+            if m and method == "DELETE":
+                with LOCK, conn() as c:
+                    c.execute("DELETE FROM crisp_obs WHERE id=?", (int(m.group(1)),))
+                return self.send_json({"ok": True})
             if p == "/api/jars" and method == "GET":
                 return self.send_json(jars_payload())
             if p == "/api/jars" and method == "POST":

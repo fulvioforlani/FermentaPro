@@ -537,7 +537,7 @@ function openDetail(id) {
       </div>
       <div>
         ${j.base_info ? `<div class="box">${baseEditor('jar:' + j.id, j.base_info.eff, j.base_info.default, j.base_info.mode === 'tuo', j.base_info.src === 'ricetta' ? 'dalla ricetta' : j.base_info.src === 'kombucha' ? 'dal kombucha' : 'generico')}</div>` : ''}
-        ${(() => { const rr = j.recipe_id && RBY.get(j.recipe_id); if (!rr) return ''; const c = crisp20(rr); const lb = `<button class="btn ghost" type="button" data-jlabel="${j.id}">${icon('book')}Etichetta</button>`; if (c == null || j.status !== 'attivo') return `<div class="box">${lb}</div>`; const rate = Math.pow(rr.q10 || Q10, ((r.temp_now?.t ?? 20) - 20) / 10), left = (c - r.e) / rate; return `<div class="box"><h4>Croccantezza</h4><p class="hint"><b>${left > 0 ? 'Frigo entro ' + dIT(addDays(isoToday(), left)) + ' (' + nf(left, 1) + ' gg)' : 'Oltre il tempo croccante: in frigo subito'}</b> · equivalente 20 °C: ${nf(r.e, 1)} di max ${nf(c)} gg.</p>${lb}</div>`; })()}
+        ${jarLabelBox(j, r)}
         <div class="box"><h4>Temperatura usata</h4>
           <div class="days7">${last7.map(p => `<div title="${SRC[p.src] || p.src}"><span>${p.d.slice(8, 10)}-${p.d.slice(5, 7)}</span><b>${nf(p.t, p.t % 1 ? 1 : 0)}°</b><i style="background:${SRC_C[p.src] || '#93a398'}"></i></div>`).join('') || '<span class="hint">—</span>'}</div>
           <p class="hint">${j.temp_mode === 'fissa' ? 'Fissa: sempre la tua temperatura.' : 'Auto: estate (giu–set) media del giorno ARPA Torino Alenia; inverno la tua temperatura di casa.'} Ordine: tua misura (vale 7 gg) › sensore › ARPA › casa.</p></div>
@@ -549,7 +549,7 @@ function openDetail(id) {
       </div>
     </div></div>`;
   const d = $('#dlg-d'); if (!d.open) d.showModal(); settle(d);
-  const jl = $('[data-jlabel]', d); if (jl) jl.addEventListener('click', () => { const rr = RBY.get(j.recipe_id); if (rr) openLabel({ r: rr, start: (j.start_date || '').slice(0, 10), temp: j.temp_c }); });
+  const jl = $('[data-jlabel]', d); if (jl) jl.addEventListener('click', () => { d.close(); openLabel({ jars: [j.id] }); });
   fillRealChart(j);
 }
 function initDetail() {
@@ -1020,7 +1020,8 @@ function openRecipe(id) {
         </div>
         <div class="actions" style="margin-top:0"><button class="btn primary" type="button" id="dr-start" style="flex:1;margin-left:0">${icon('jar')}Avvia vaso</button><button class="btn ghost" type="button" id="dr-adapt" style="flex:1">${icon('resize')}Adatta</button></div>
         <div class="actions" style="margin-top:8px"><button class="btn ghost${r.want ? ' on' : ''}" type="button" data-want="${r.id}" style="flex:1" id="dr-want"><svg><use href="#i-heart"/></svg>Da provare</button><button class="btn ghost" type="button" id="dr-label" style="flex:1">${icon('book')}Etichetta</button></div>
-        ${crispAt(r) != null ? `<p class="how" style="margin-top:10px">${icon('info')}<span>Croccantezza: dopo il <b>pronto</b> (${nf(rMin(r), rMin(r) % 1 ? 1 : 0)} gg) passa in frigo entro <b>${nf(crispAt(r), crispAt(r) % 1 ? 1 : 0)} gg</b> a ${nf(r.target_temp_c)} °C: oltre ammorbidisce. Stima prudente per la verdura piu' delicata. Aiutano: foglia di vite, ciliegio o alloro, verdure fredde e fresche, sale nel range, frigo appena pronto.</span></p>` : ''}
+        ${crispAt(r) != null ? `<p class="how" style="margin-top:10px">${icon('info')}<span>Croccantezza: dopo il <b>pronto</b> (${nf(rMin(r), rMin(r) % 1 ? 1 : 0)} gg) passa in frigo entro <b>${nf(crispAt(r), crispAt(r) % 1 ? 1 : 0)} gg</b> a ${nf(r.target_temp_c)} °C: oltre ammorbidisce. Stima prudente per la verdura piu' delicata; poi in frigo (${fridgeT()} °C) ancora circa <b>${fridgeDays(r).d} gg</b> croccante${fridgeDays(r).n ? ` (media di ${fridgeDays(r).n} tuoi vasi)` : ''}.</span></p>` : ''}
+        ${crispTips(r).length ? `<details class="tips"><summary>Per restare croccanti</summary><ul>${crispTips(r).map(t => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}
       </div>
       <div>
         <section class="rd-sec"><h4>Il tuo voto</h4><div class="rate"><div class="rate-stars" id="dr-stars" role="radiogroup" aria-label="Voto">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-s="${i}" role="radio" aria-checked="${i === (r.rating || 0)}" aria-label="${i} stelle" class="${i <= (r.rating || 0) ? 'on' : ''}"><svg><use href="#i-star"/></svg></button>`).join('')}</div><span class="saved" id="dr-rs">Salvato</span></div></section>
@@ -1054,7 +1055,7 @@ function openRecipe(id) {
   };
   $('#dr-save').addEventListener('click', saveNotes);
   $('#dr-want').addEventListener('click', () => toggleWant(r.id));
-  $('#dr-label').addEventListener('click', () => openLabel({ r }));
+  $('#dr-label').addEventListener('click', () => openLabel({ recipe: r }));
   $('#dr-notes').addEventListener('blur', saveNotes);
   $('#dr-start').addEventListener('click', () => { d.close(); openJar({ recipe_id: r.id, name: r.name, method: r.method, net_g: r.total_weight_g, water_g: r.water_ml, salt_g: r.salt_g }); });
   $('#dr-adapt').addEventListener('click', () => { d.close(); A.rid = r.id; adaptPickRecipe(r, true); go('adatta'); });
