@@ -47,7 +47,8 @@ def network_security_config():
              "<network-security-config>",
              '    <base-config cleartextTrafficPermitted="false" />',
              '    <domain-config cleartextTrafficPermitted="true">',
-             '        <domain includeSubdomains="true">local</domain>']
+             '        <domain includeSubdomains="true">local</domain>',
+             '        <domain includeSubdomains="true">ts.net</domain>']
     lines += [f"        <domain>{h}</domain>" for h in hosts]
     lines += ["    </domain-config>", "</network-security-config>", ""]
     path = os.path.join(ROOT, "res", "xml", "network_security_config.xml")

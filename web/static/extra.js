@@ -23,8 +23,11 @@ const crisp20 = r => { const c = crispInfo(r); return c ? c.d : null; };
 let OBS = [];
 async function loadObs() { try { OBS = await api('/api/crisp'); } catch (e) { OBS = []; } }
 const FRT_KEY = 'fermentati.fridgeT';
-function fridgeT() { try { const v = parseFloat(localStorage.getItem(FRT_KEY)); if (isFinite(v)) return clamp(v, -2, 12); } catch (e) { /* default */ } return 4; }
-function setFridgeT(v) { try { localStorage.setItem(FRT_KEY, String(v)); } catch (e) { /* ignora */ } }
+let FRT = null;   /* temperatura frigo: salvata sul server (vale per PC e telefono) */
+function fridgeT() { if (FRT != null && isFinite(FRT)) return clamp(FRT, -2, 12); try { const v = parseFloat(localStorage.getItem(FRT_KEY)); if (isFinite(v)) return clamp(v, -2, 12); } catch (e) { /* default */ } return 4; }
+function setFridgeT(v) { FRT = v; try { localStorage.setItem(FRT_KEY, String(v)); } catch (e) { /* ignora */ } api('/api/fridge_t', { method: 'POST', body: { t: v } }).catch(() => {}); syncFridgeInput(); }
+async function loadFridgeT() { try { const r = await api('/api/fridge_t'); FRT = r.t; } catch (e) { /* resta il valore locale */ } syncFridgeInput(); }
+function syncFridgeInput() { const i = document.getElementById('j-ft'); if (i && document.activeElement !== i) i.value = fridgeT(); }
 const rateAt = (t, q = 2.2) => Math.pow(q, (t - 20) / 10);   /* 1 giorno a t C = rateAt giorni a 20 C */
 /* budget di croccantezza: giorni equivalenti a 20 C in totale (fuori + frigo); impara dalle osservazioni */
 function crispBudget(r) {
@@ -287,6 +290,8 @@ function initExtra() {
   const lb = $('#j-labels'); if (lb) lb.addEventListener('click', () => openLabel({}));
   $('#dlg-d').addEventListener('click', e => { const b = e.target.closest('[data-crisp-save]'); if (b) saveCrisp(+b.dataset.crispSave); });
   $('#dlg-d').addEventListener('change', e => { if (e.target.id !== 'dd-ft') return; const v = parseFloat(String(e.target.value).replace(',', '.')); if (isFinite(v)) { setFridgeT(clamp(v, -2, 12)); if (typeof DD === 'number') openDetail(DD); } });
+  const ft = $('#j-ft'); if (ft) ft.addEventListener('change', () => { const v = parseFloat(String(ft.value).replace(',', '.')); if (isFinite(v)) { setFridgeT(clamp(v, -2, 12)); toast('Temperatura frigo: ' + fridgeT() + ' °C'); } else syncFridgeInput(); });
+  loadFridgeT();
   loadObs().then(() => { renderRecipes(); renderSeasonPanel(); });
 }
 

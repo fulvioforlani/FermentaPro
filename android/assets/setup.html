@@ -69,7 +69,7 @@ document.getElementById('f').onsubmit = function (e) {
   if (!B) { msg('Apri questa pagina dall’app Fermentati.', 'ko'); return; }
   var r = B.check(a.value);
   if (r === 'invalid') { msg('Scrivi un indirizzo tipo 192.168.1.58:8954', 'ko'); return; }
-  if (r.indexOf('notlocal:') === 0) { msg('Solo indirizzi di casa: 192.168.0.x, 192.168.1.x o nome.local', 'ko'); return; }
+  if (r.indexOf('notlocal:') === 0) { msg('Solo indirizzi di casa (192.168.0.x, 192.168.1.x), nome.local o nome Tailscale (.ts.net)', 'ko'); return; }
   a.value = r.slice(3);
   msg('Provo a collegarmi…', 'wait'); go.disabled = true;
   B.ping(a.value);

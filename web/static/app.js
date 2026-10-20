@@ -180,7 +180,7 @@ const NOMAIN = ['bevanda', ...OTHER];
 const VIEWS = ['sale', 'vasi', 'ricette', ...CATV, 'kombucha', 'guida', 'adatta'];
 const onView = {};
 function go(v) {
-  if (!VIEWS.includes(v)) v = 'sale';
+  if (!VIEWS.includes(v)) v = 'vasi';
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
   $$('[data-v]').forEach(a => { const on = a.dataset.v === v || (a.dataset.v === 'ricette' && CATV.includes(v) && !!a.closest('.mainnav, .tabbar')); a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
@@ -463,7 +463,7 @@ function jarActions(root) {
       if (a === 'del') {
         if (!b.classList.contains('armed')) { b.classList.add('armed'); b.innerHTML = 'Sicuro?'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.innerHTML = icon('trash'); } }, 3000); return; }
         await api('/api/jars/' + id, { method: 'DELETE' }); JARS = JARS.filter(x => x.id !== id); toast('Eliminato');
-      } else if (a === 'frigo') { const nj = await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo', fridge_date: isoToday() } }); upsertJar(nj); toast('In frigo'); renderJars(); offerRealBase(nj); return; }
+      } else if (a === 'frigo') { const nj = await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo', fridge_date: isoToday() } }); upsertJar(nj); toast('In frigo a ' + (typeof fridgeT === 'function' ? fridgeT() : 4) + ' °C'); renderJars(); offerRealBase(nj); return; }
       else if (a === 'finito') { upsertJar(await api('/api/jars/' + id, { method: 'PUT', body: { status: 'finito' } })); toast('Finito'); }
       else if (a === 'riapri') { upsertJar(await api('/api/jars/' + id, { method: 'PUT', body: { status: 'frigo' } })); toast('Riaperto'); }
       renderJars();
@@ -1568,7 +1568,7 @@ async function init() {
   floaters();
   $('#today').textContent = dIT(isoToday());
   initDialogs(); initCalc(); initJarForm(); initDetail(); initSensor(); renderGuide();
-  go(location.hash.slice(1) || 'sale');
+  go(location.hash.slice(1) || 'vasi');
   try {
     const [d, j] = await Promise.all([api('/api/data'), api('/api/jars')]);
     DATA = d; JARS = j;

@@ -727,6 +727,17 @@ class Handler(SimpleHTTPRequestHandler):
                 since = (qs.get("from") or ["0000"])[0][:19]
                 with conn() as c:
                     return self.send_json(hourly(c, since, use_sim(c)))
+            if p == "/api/fridge_t":
+                if method == "POST":
+                    b = self.body()
+                    with LOCK, conn() as c:
+                        try:
+                            v = max(-2.0, min(12.0, float(b.get("t"))))
+                        except (TypeError, ValueError):
+                            return self.send_json({"error": "temperatura non valida"}, 400)
+                        set_setting(c, "fridge_t", v)
+                with conn() as c:
+                    return self.send_json({"t": float(get_setting(c, "fridge_t", "4") or 4)})
             if p == "/api/sensor/settings" and method == "POST":
                 b = self.body()
                 with LOCK, conn() as c:

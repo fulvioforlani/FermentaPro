@@ -40,13 +40,13 @@
 <div class="ambient" aria-hidden="true"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="floaters" id="floaters"></div></div>
 
 <header class="topbar">
-  <a class="brand" href="#sale" aria-label="Fermentati, home">
+  <a class="brand" href="#vasi" aria-label="Fermentati, home">
     <span class="brand-jar" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-jar"/></svg></span>
     <span class="brand-name">Fermentati<small>cantina di casa</small></span>
   </a>
   <nav class="mainnav" aria-label="Sezioni">
-    <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg>Sale</a>
     <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg>Vasi<b class="badge" data-badge hidden></b></a>
+    <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg>Sale</a>
     <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg>Ricette</a>
     <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg>Kombucha</a>
     <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg>Guida</a>
@@ -118,7 +118,7 @@
   <section class="view" id="v-vasi" aria-labelledby="t-vasi">
     <div class="vhead row-head">
       <div><p class="eyebrow">In cantina</p><h1 id="t-vasi">I miei <em>vasi</em></h1></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="j-labels" type="button"><svg><use href="#i-book"/></svg>Etichette</button><button class="btn primary" id="j-new" type="button"><svg><use href="#i-plus"/></svg>Nuovo vaso</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn ghost" style="gap:6px;cursor:default"><svg><use href="#i-snow"/></svg>Frigo <input id="j-ft" type="number" inputmode="decimal" step="0.5" min="-2" max="12" value="4" style="width:3.6em;background:transparent;border:0;border-bottom:1px solid currentColor;color:inherit;font:inherit;text-align:center"> °C</label><button class="btn ghost" id="j-labels" type="button"><svg><use href="#i-book"/></svg>Etichette</button><button class="btn primary" id="j-new" type="button"><svg><use href="#i-plus"/></svg>Nuovo vaso</button></div>
     </div>
     <p class="how"><svg><use href="#i-info"/></svg><span>Stima: giorni a 20 °C corretti ogni giorno con la temperatura (Q10 2,2). <b>Decidono assaggio e odore.</b></span></p>
     <p class="how meteo" id="j-meteo"></p>
@@ -344,8 +344,8 @@
 </main>
 
 <nav class="tabbar" aria-label="Sezioni">
-  <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg><span>Sale</span></a>
   <a href="#vasi" data-v="vasi"><svg><use href="#i-jar"/></svg><span>Vasi</span><b class="badge" data-badge hidden></b></a>
+  <a href="#sale" data-v="sale"><svg><use href="#i-salt"/></svg><span>Sale</span></a>
   <a href="#ricette" data-v="ricette"><svg><use href="#i-book"/></svg><span>Ricette</span></a>
   <a href="#kombucha" data-v="kombucha"><svg><use href="#i-bottle"/></svg><span>Kombucha</span></a>
   <a href="#guida" data-v="guida"><svg><use href="#i-leaf"/></svg><span>Guida</span></a>
